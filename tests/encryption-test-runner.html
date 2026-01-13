@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MemoryFile Encryption Tests</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      padding: 20px;
+      background: #f5f5f5;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    h1 {
+      color: #2c3e50;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    h1::before {
+      content: "🔒";
+      font-size: 32px;
+    }
+
+    .subtitle {
+      color: #7f8c8d;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+
+    .controls {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      padding: 12px 24px;
+      font-size: 14px;
+      font-weight: 600;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .primary {
+      background: #3498db;
+      color: white;
+    }
+
+    .primary:hover {
+      background: #2980b9;
+    }
+
+    .secondary {
+      background: #ecf0f1;
+      color: #2c3e50;
+    }
+
+    .secondary:hover {
+      background: #dfe6e9;
+    }
+
+    .summary {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 6px;
+      margin-bottom: 30px;
+      display: none;
+    }
+
+    .summary.visible {
+      display: block;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 15px;
+      margin-bottom: 15px;
+    }
+
+    .summary-item {
+      text-align: center;
+    }
+
+    .summary-value {
+      font-size: 32px;
+      font-weight: 700;
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    .summary-label {
+      font-size: 12px;
+      color: #7f8c8d;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .pass { color: #27ae60; }
+    .fail { color: #e74c3c; }
+    .skip { color: #95a5a6; }
+
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: #ecf0f1;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 15px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #3498db, #2ecc71);
+      width: 0%;
+      transition: width 0.3s;
+    }
+
+    .category {
+      margin-bottom: 30px;
+    }
+
+    .category-header {
+      background: #34495e;
+      color: white;
+      padding: 12px 16px;
+      border-radius: 6px;
+      margin-bottom: 12px;
+      font-weight: 600;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .category-stats {
+      font-size: 13px;
+      opacity: 0.9;
+    }
+
+    .test-item {
+      background: #f8f9fa;
+      padding: 12px 16px;
+      margin-bottom: 8px;
+      border-radius: 4px;
+      border-left: 4px solid #95a5a6;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.2s;
+    }
+
+    .test-item.running {
+      border-left-color: #3498db;
+      background: #ebf5fb;
+    }
+
+    .test-item.pass {
+      border-left-color: #27ae60;
+      background: #eafaf1;
+    }
+
+    .test-item.fail {
+      border-left-color: #e74c3c;
+      background: #fdedec;
+    }
+
+    .test-name {
+      flex: 1;
+      font-weight: 500;
+      color: #2c3e50;
+    }
+
+    .test-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+    }
+
+    .test-time {
+      color: #7f8c8d;
+      min-width: 60px;
+      text-align: right;
+    }
+
+    .test-error {
+      margin-top: 8px;
+      padding: 8px;
+      background: #fee;
+      border-radius: 4px;
+      font-size: 13px;
+      color: #c0392b;
+      font-family: 'Monaco', 'Menlo', monospace;
+      white-space: pre-wrap;
+    }
+
+    .loading {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid #3498db;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .security-notice {
+      background: #fff3cd;
+      border: 2px solid #ffc107;
+      border-radius: 6px;
+      padding: 15px;
+      margin-bottom: 20px;
+    }
+
+    .security-notice h3 {
+      color: #856404;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .security-notice p {
+      color: #856404;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Encryption Test Suite</h1>
+    <p class="subtitle">Comprehensive tests for MemoryFile encryption functionality</p>
+
+    <div class="security-notice">
+      <h3>🔐 Encryption Security Tests</h3>
+      <p>
+        These tests verify AES-256-GCM encryption, PBKDF2 key derivation with 100k iterations,
+        password management, and real-world encryption scenarios. All tests run locally in your browser.
+      </p>
+    </div>
+
+    <div class="controls">
+      <button class="primary" onclick="runAllTests()">Run All Tests</button>
+      <button class="secondary" onclick="runCategory('Basic Encryption')">Basic Tests</button>
+      <button class="secondary" onclick="runCategory('Database Encryption')">Database Tests</button>
+      <button class="secondary" onclick="runCategory('Password Management')">Password Tests</button>
+      <button class="secondary" onclick="runCategory('Security Properties')">Security Tests</button>
+      <button class="secondary" onclick="runCategory('Real-World Scenarios')">Real-World</button>
+      <button class="secondary" onclick="clearResults()">Clear</button>
+    </div>
+
+    <div class="summary" id="summary">
+      <div class="summary-grid">
+        <div class="summary-item">
+          <span class="summary-value pass" id="pass-count">0</span>
+          <span class="summary-label">Passed</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-value fail" id="fail-count">0</span>
+          <span class="summary-label">Failed</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-value" id="total-count">0</span>
+          <span class="summary-label">Total</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-value" id="duration">0ms</span>
+          <span class="summary-label">Duration</span>
+        </div>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progress-fill"></div>
+      </div>
+    </div>
+
+    <div id="results"></div>
+  </div>
+
+  <script src="lib/sql-wasm.js"></script>
+  <script src="lib/html-sqlite-core.js"></script>
+  <script src="lib/test-utils.js"></script>
+  <script src="lib/encryption-tests.js"></script>
+
+  <script>
+    let testSuite = null;
+    let testResults = new Map();
+
+    window.onload = async function() {
+      // Initialize test suite
+      testSuite = createEncryptionTestSuite();
+      console.log(`Loaded ${testSuite.tests.length} encryption tests`);
+      
+      // Render test categories
+      renderCategories();
+    };
+
+    function renderCategories() {
+      const resultsDiv = document.getElementById('results');
+      resultsDiv.innerHTML = '';
+
+      for (const category of testSuite.categories) {
+        const categoryDiv = document.createElement('div');
+        categoryDiv.className = 'category';
+        categoryDiv.innerHTML = `
+          <div class="category-header">
+            <span>${category.name}</span>
+            <span class="category-stats" id="stats-${category.name}">
+              ${category.tests.length} tests
+            </span>
+          </div>
+          <div id="tests-${category.name}"></div>
+        `;
+        resultsDiv.appendChild(categoryDiv);
+
+        // Render tests
+        const testsDiv = document.getElementById(`tests-${category.name}`);
+        for (const test of category.tests) {
+          const testDiv = document.createElement('div');
+          testDiv.className = 'test-item';
+          testDiv.id = `test-${test.name}`;
+          testDiv.innerHTML = `
+            <div class="test-name">${test.name}</div>
+            <div class="test-status">
+              <span class="test-time"></span>
+            </div>
+          `;
+          testsDiv.appendChild(testDiv);
+        }
+      }
+    }
+
+    async function runAllTests() {
+      const startTime = performance.now();
+      testResults.clear();
+      
+      document.getElementById('summary').classList.add('visible');
+      
+      let passCount = 0;
+      let failCount = 0;
+      
+      for (let i = 0; i < testSuite.tests.length; i++) {
+        const test = testSuite.tests[i];
+        const result = await runSingleTest(test);
+        
+        testResults.set(test.name, result);
+        
+        if (result.pass) passCount++;
+        else failCount++;
+        
+        // Update progress
+        const progress = ((i + 1) / testSuite.tests.length) * 100;
+        document.getElementById('progress-fill').style.width = progress + '%';
+        
+        updateCategoryStats(test.category);
+      }
+      
+      const duration = performance.now() - startTime;
+      
+      // Update summary
+      document.getElementById('pass-count').textContent = passCount;
+      document.getElementById('fail-count').textContent = failCount;
+      document.getElementById('total-count').textContent = testSuite.tests.length;
+      document.getElementById('duration').textContent = Math.round(duration) + 'ms';
+    }
+
+    async function runCategory(categoryName) {
+      const category = testSuite.categories.find(c => c.name === categoryName);
+      if (!category) return;
+      
+      document.getElementById('summary').classList.add('visible');
+      
+      for (const test of category.tests) {
+        const result = await runSingleTest(test);
+        testResults.set(test.name, result);
+        updateCategoryStats(categoryName);
+      }
+    }
+
+    async function runSingleTest(test) {
+      const testDiv = document.getElementById(`test-${test.name}`);
+      testDiv.className = 'test-item running';
+      
+      const statusDiv = testDiv.querySelector('.test-status');
+      statusDiv.innerHTML = '<div class="loading"></div>';
+      
+      const startTime = performance.now();
+      
+      try {
+        await test.run();
+        const duration = performance.now() - startTime;
+        
+        testDiv.className = 'test-item pass';
+        statusDiv.innerHTML = `
+          <span class="pass">✓ Pass</span>
+          <span class="test-time">${Math.round(duration)}ms</span>
+        `;
+        
+        return { pass: true, duration };
+      } catch (error) {
+        const duration = performance.now() - startTime;
+        
+        testDiv.className = 'test-item fail';
+        statusDiv.innerHTML = `
+          <span class="fail">✗ Fail</span>
+          <span class="test-time">${Math.round(duration)}ms</span>
+        `;
+        
+        // Add error message
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'test-error';
+        errorDiv.textContent = error.message;
+        testDiv.appendChild(errorDiv);
+        
+        return { pass: false, duration, error: error.message };
+      }
+    }
+
+    function updateCategoryStats(categoryName) {
+      const category = testSuite.categories.find(c => c.name === categoryName);
+      if (!category) return;
+      
+      let passCount = 0;
+      let failCount = 0;
+      
+      for (const test of category.tests) {
+        const result = testResults.get(test.name);
+        if (result) {
+          if (result.pass) passCount++;
+          else failCount++;
+        }
+      }
+      
+      const statsDiv = document.getElementById(`stats-${categoryName}`);
+      statsDiv.innerHTML = `
+        <span class="pass">${passCount} passed</span> • 
+        <span class="fail">${failCount} failed</span> • 
+        ${category.tests.length} total
+      `;
+    }
+
+    function clearResults() {
+      testResults.clear();
+      document.getElementById('summary').classList.remove('visible');
+      document.getElementById('progress-fill').style.width = '0%';
+      renderCategories();
+    }
+
+    // Assert helper
+    function assert(condition, message) {
+      if (!condition) {
+        throw new Error(message || 'Assertion failed');
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  MemoryFile - HTML files that remember
+  
+  This file IS a working example. Type something below, save with Ctrl+S,
+  and your data persists in the file. No server needed.
+  
+  How it works:
+    - SQLite database embedded as base64 in a <script> tag
+    - On save, entire HTML is rebuilt with updated database
+    - Commit history tracked with SHA-256 hashes
+  
+  API:
+    const mf = new MemoryFile({ embedId: 'embedded-db' });
+    await mf.initSQL({ locateFile: f => `lib/${f}` });
+    await mf.loadEmbeddedDatabase();
+    mf.run('INSERT INTO entries (text) VALUES (?)', ['hello']);
+    await mf.saveToFile('app.html');
+  
+  Docs: https://github.com/AmbientAccent/memoryfile
+-->
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MemoryFile</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      height: 100%;
+      overflow: hidden;
+    }
+    body {
+      font-family: -apple-system, system-ui, sans-serif;
+      line-height: 1.5;
+      background: #fff;
+      color: #000;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .container {
+      flex: 1;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 60px 24px 24px;
+      width: 100%;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    h1 {
+      font-size: 32px;
+      font-weight: 600;
+      letter-spacing: -0.5px;
+      margin-bottom: 8px;
+    }
+    
+    .subtitle {
+      color: #666;
+      margin-bottom: 48px;
+    }
+    
+    textarea {
+      width: 100%;
+      min-height: 120px;
+      padding: 12px;
+      font-family: inherit;
+      font-size: 16px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      margin-bottom: 12px;
+      resize: vertical;
+    }
+    
+    textarea:focus {
+      outline: none;
+      border-color: #000;
+    }
+    
+    textarea.modified {
+      border-color: #f90;
+      background: #fffbf0;
+    }
+    
+    button {
+      font-family: inherit;
+      font-size: 16px;
+      padding: 12px 20px;
+      border: 1px solid #000;
+      border-radius: 6px;
+      cursor: pointer;
+      background: #000;
+      color: #fff;
+      transition: opacity 0.15s;
+    }
+    
+    button:hover {
+      opacity: 0.8;
+    }
+    
+    button:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+    
+    .entries {
+      margin-top: 48px;
+      padding-top: 24px;
+      border-top: 1px solid #eee;
+    }
+    
+    .entry {
+      padding: 12px 0;
+      border-bottom: 1px solid #f5f5f5;
+    }
+    
+    .entry-text {
+      margin-bottom: 4px;
+    }
+    
+    .entry-date {
+      font-size: 13px;
+      color: #999;
+    }
+    
+    .empty {
+      color: #999;
+      font-style: italic;
+    }
+    
+    .commits {
+      margin-top: 48px;
+      padding-top: 24px;
+      border-top: 1px solid #eee;
+    }
+    
+    .commits h2 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: #666;
+    }
+    
+    .commit {
+      padding: 8px 0;
+      font-size: 14px;
+    }
+    
+    .commit-hash {
+      color: #0066ff;
+      font-family: 'SF Mono', Monaco, monospace;
+      font-size: 13px;
+      margin-right: 12px;
+    }
+    
+    .commit-msg {
+      color: #666;
+    }
+    
+    .status-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: #f8f8f8;
+      border-bottom: 1px solid #eee;
+      padding: 12px 24px;
+      font-size: 13px;
+      color: #666;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 10;
+    }
+    
+    .status-bar.modified {
+      background: #ff9900;
+      border-bottom-color: #ff9900;
+      color: #fff;
+      font-weight: 500;
+    }
+    
+    footer {
+      margin-top: auto;
+      padding: 24px 0;
+      border-top: 1px solid #eee;
+      color: #999;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+    
+    footer a {
+      color: #999;
+      text-decoration: none;
+    }
+    
+    footer a:hover {
+      color: #000;
+      text-decoration: underline;
+    }
+    
+    @media (prefers-color-scheme: dark) {
+      body { background: #000; color: #fff; }
+      textarea { background: #111; color: #fff; border-color: #333; }
+      textarea:focus { border-color: #666; }
+      textarea.modified { background: #1a1500; border-color: #f90; }
+      button { background: #fff; color: #000; border-color: #fff; }
+      .entries, .commits { border-top-color: #222; }
+      .entry { border-bottom-color: #1a1a1a; }
+      .subtitle, .entry-date, .empty, .commits h2, .commit-msg { color: #666; }
+      .status-bar { background: #111; border-bottom-color: #222; color: #666; }
+      .status-bar.modified { background: #ff9900; border-bottom-color: #ff9900; color: #000; }
+      footer { border-top-color: #222; }
+      footer a:hover { color: #fff; }
+    }
+  </style>
+  <script src="lib/sql-wasm.js"></script>
+</head>
+<body>
+  <div class="status-bar" id="status-bar">
+    <span id="status-text">Ready</span>
+    <span id="status-size">0 KB</span>
+  </div>
+  
+  <div class="container">
+    <h1>MemoryFile</h1>
+    <p class="subtitle">
+      This HTML file has an embedded database. Type something, save with Ctrl+S, and it persists.
+    </p>
+    
+    <!--
+      Try it: Type in the box, press Ctrl+S or the button below.
+      Save the file, then open it again. Your text is still there.
+    -->
+    <textarea id="input" placeholder="Type something..."></textarea>
+    
+    <button id="btn-save" disabled>Save (Ctrl+S)</button>
+    
+    <div class="entries" id="entries-section" style="display: none;">
+      <div id="entries"></div>
+    </div>
+    
+    <div class="commits" id="commits-section" style="display: none;">
+      <h2>History</h2>
+      <div id="commits"></div>
+    </div>
+    
+    <footer>
+      <a href="https://github.com/AmbientAccent/memoryfile">GitHub</a> ·
+      <a href="examples/">Examples</a> ·
+      <a href="docs/ARCHITECTURE.md">Docs</a> ·
+      MIT License
+    </footer>
+  </div>
+  
+  <!-- Commit metadata (updated on each save) -->
+  <script id="commit-metadata" type="application/json">
+{
+  "commitHash": "00000000",
+  "parentHash": null,
+  "commitMessage": "Initial commit",
+  "commitDate": "2026-01-13T00:00:00Z"
+}
+  </script>
+  
+  <!-- Embedded database (updated on each save) -->
+  <script id="embedded-db" type="application/x-sqlite3">
+  </script>
+  
+  <script>
+    // State
+    let db, sqlModule, metadata;
+    let modified = false;
+    
+    // Elements
+    const input = document.getElementById('input');
+    const btnSave = document.getElementById('btn-save');
+    const entriesSection = document.getElementById('entries-section');
+    const entriesEl = document.getElementById('entries');
+    const commitsSection = document.getElementById('commits-section');
+    const commitsEl = document.getElementById('commits');
+    const statusBar = document.getElementById('status-bar');
+    const statusText = document.getElementById('status-text');
+    const statusSize = document.getElementById('status-size');
+    
+    // Helpers
+    function b64ToBytes(b64) {
+      const bin = atob(b64.trim());
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      return bytes;
+    }
+    
+    function bytesToB64(bytes) {
+      let bin = '';
+      const chunk = 0x8000;
+      for (let i = 0; i < bytes.length; i += chunk) {
+        bin += String.fromCharCode(...bytes.subarray(i, Math.min(i + chunk, bytes.length)));
+      }
+      return btoa(bin);
+    }
+    
+    async function hash(data) {
+      const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(data)));
+      return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 8);
+    }
+    
+    function esc(str) {
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+    
+    function fmt(iso) {
+      return new Date(iso).toLocaleString();
+    }
+    
+    // Mark as modified
+    function setModified(val) {
+      modified = val;
+      btnSave.disabled = !val;
+      input.classList.toggle('modified', val);
+      statusBar.classList.toggle('modified', val);
+      statusText.textContent = val ? 'Unsaved changes - Press Ctrl+S or click Save' : 'Ready';
+    }
+    
+    // Update size display
+    function updateSize() {
+      if (!db) return;
+      const kb = (db.export().length / 1024).toFixed(1);
+      statusSize.textContent = kb + ' KB';
+    }
+    
+    // Database schema
+    function createSchema() {
+      db.run(`
+        CREATE TABLE IF NOT EXISTS entries (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          text TEXT NOT NULL,
+          created_at TEXT NOT NULL
+        )
+      `);
+      db.run(`
+        CREATE TABLE IF NOT EXISTS commits (
+          hash TEXT PRIMARY KEY,
+          parent_hash TEXT,
+          message TEXT NOT NULL,
+          created_at TEXT NOT NULL
+        )
+      `);
+      db.run(
+        'INSERT OR IGNORE INTO commits (hash, parent_hash, message, created_at) VALUES (?, ?, ?, ?)',
+        [metadata.commitHash, null, metadata.commitMessage, metadata.commitDate]
+      );
+    }
+    
+    // Render
+    function render() {
+      const result = db.exec('SELECT text, created_at FROM entries ORDER BY id DESC');
+      
+      if (!result.length || !result[0].values.length) {
+        entriesSection.style.display = 'none';
+        return;
+      }
+      
+      entriesSection.style.display = 'block';
+      entriesEl.innerHTML = result[0].values.map(([text, date]) => `
+        <div class="entry">
+          <div class="entry-text">${esc(text)}</div>
+          <div class="entry-date">${fmt(date)}</div>
+        </div>
+      `).join('');
+    }
+    
+    function renderCommits() {
+      const result = db.exec('SELECT hash, message, created_at FROM commits ORDER BY created_at DESC');
+      
+      if (!result.length || !result[0].values.length) {
+        commitsSection.style.display = 'none';
+        return;
+      }
+      
+      commitsSection.style.display = 'block';
+      commitsEl.innerHTML = result[0].values.map(([hash, msg, date]) => `
+        <div class="commit">
+          <span class="commit-hash">${hash}</span>
+          <span class="commit-msg">${esc(msg)} &middot; ${fmt(date)}</span>
+        </div>
+      `).join('');
+    }
+    
+    // Save
+    async function save() {
+      const text = input.value.trim();
+      if (!text) return;
+      
+      statusText.textContent = 'Saving...';
+      btnSave.disabled = true;
+      
+      try {
+        // Add entry
+        db.run(
+          'INSERT INTO entries (text, created_at) VALUES (?, ?)',
+          [text, new Date().toISOString()]
+        );
+        
+        // Generate commit
+        const commitData = {
+          db: bytesToB64(db.export()),
+          timestamp: Date.now(),
+          text: text.slice(0, 50),
+          parent: metadata.commitHash
+        };
+        const newHash = await hash(commitData);
+        const now = new Date().toISOString();
+        
+        // Add commit
+        db.run(
+          'INSERT INTO commits (hash, parent_hash, message, created_at) VALUES (?, ?, ?, ?)',
+          [newHash, metadata.commitHash, text.slice(0, 50), now]
+        );
+        
+        // Update metadata
+        const newMetadata = {
+          commitHash: newHash,
+          parentHash: metadata.commitHash,
+          commitMessage: text.slice(0, 50),
+          commitDate: now
+        };
+        
+        // Build HTML
+        const dbBase64 = bytesToB64(db.export());
+        let html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+        
+        html = html.replace(
+          /(<script id="embedded-db"[^>]*>)([\s\S]*?)(<\/script>)/,
+          `$1\n${dbBase64}\n$3`
+        );
+        
+        html = html.replace(
+          /(<script id="commit-metadata"[^>]*>)([\s\S]*?)(<\/script>)/,
+          `$1\n${JSON.stringify(newMetadata, null, 2)}\n$3`
+        );
+        
+        // Save file
+        const filename = `memoryfile.${newHash}.html`;
+        
+        if ('showSaveFilePicker' in window) {
+          try {
+            const handle = await window.showSaveFilePicker({
+              suggestedName: filename,
+              types: [{ description: 'HTML', accept: { 'text/html': ['.html'] } }]
+            });
+            const writable = await handle.createWritable();
+            await writable.write(html);
+            await writable.close();
+          } catch (err) {
+            if (err.name === 'AbortError') {
+              statusText.textContent = 'Cancelled';
+              btnSave.disabled = false;
+              return;
+            }
+            throw err;
+          }
+        } else {
+          const blob = new Blob([html], { type: 'text/html' });
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = filename;
+          a.click();
+          URL.revokeObjectURL(a.href);
+        }
+        
+        // Update state
+        metadata = newMetadata;
+        input.value = '';
+        setModified(false);
+        render();
+        renderCommits();
+        updateSize();
+        statusText.textContent = 'Ready';
+        
+      } catch (err) {
+        statusText.textContent = 'Error: ' + err.message;
+        console.error(err);
+      }
+    }
+    
+    // Init
+    async function init() {
+      try {
+        sqlModule = await initSqlJs({ locateFile: f => `lib/${f}` });
+        metadata = JSON.parse(document.getElementById('commit-metadata').textContent);
+        
+        const dbBase64 = document.getElementById('embedded-db').textContent.trim();
+        if (dbBase64) {
+          try {
+            db = new sqlModule.Database(b64ToBytes(dbBase64));
+            db.exec('SELECT 1');
+          } catch {
+            db = new sqlModule.Database();
+            createSchema();
+          }
+        } else {
+          db = new sqlModule.Database();
+          createSchema();
+        }
+        
+        render();
+        renderCommits();
+        updateSize();
+        input.focus();
+        
+      } catch (err) {
+        statusText.textContent = 'Error: ' + err.message;
+        console.error(err);
+      }
+    }
+    
+    // Events
+    input.addEventListener('input', () => {
+      const hasText = input.value.trim().length > 0;
+      if (hasText && !modified) setModified(true);
+      if (!hasText && modified) setModified(false);
+    });
+    
+    btnSave.addEventListener('click', save);
+    
+    document.addEventListener('keydown', e => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        if (modified) save();
+      }
+    });
+    
+    window.addEventListener('beforeunload', e => {
+      if (modified) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    });
+    
+    init();
+  </script>
+</body>
+</html>

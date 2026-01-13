@@ -1,0 +1,32 @@
+name: Bug Report
+description: Report a bug or issue
+labels: ["bug"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What happened?
+    validations:
+      required: true
+  
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      placeholder: |
+        1. Open test-runner.html
+        2. Click "Run All Tests"
+        3. See error...
+    validations:
+      required: true
+  
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: |
+        Browser: Chrome 120
+        OS: macOS 14.0
+    validations:
+      required: true

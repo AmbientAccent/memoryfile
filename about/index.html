@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>About - MemoryFile</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 16px;
+      line-height: 1.6;
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 48px 24px;
+      color: #000;
+      background: #fff;
+    }
+    h1 { font-size: 28px; font-weight: 600; margin-bottom: 8px; line-height: 1.2; }
+    h2 { font-size: 20px; font-weight: 600; margin: 36px 0 16px; }
+    h3 { font-size: 16px; font-weight: 600; margin: 24px 0 12px; }
+    p { margin-bottom: 16px; opacity: 0.8; }
+    ul, ol { margin: 16px 0 16px 24px; opacity: 0.8; }
+    li { margin-bottom: 8px; }
+    code {
+      background: rgba(0, 0, 0, 0.05);
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: 'SF Mono', Monaco, monospace;
+      font-size: 14px;
+    }
+    pre {
+      background: rgba(0, 0, 0, 0.05);
+      padding: 16px;
+      border-radius: 6px;
+      overflow-x: auto;
+      margin: 16px 0;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+    a { color: #0070f3; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .gray { opacity: 0.6; }
+    @media (prefers-color-scheme: dark) {
+      body { background: #000; color: #fff; }
+      code { background: rgba(255, 255, 255, 0.1); }
+      pre { background: rgba(255, 255, 255, 0.1); }
+      th, td { border-color: rgba(255, 255, 255, 0.1); }
+      hr { border-color: rgba(255, 255, 255, 0.1) !important; }
+    }
+    table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+    th, td { text-align: left; padding: 8px; border-bottom: 1px solid rgba(0, 0, 0, 0.1); font-size: 15px; }
+    th { font-weight: 600; }
+  </style>
+</head>
+<body>
+  <p><a href="../">← Back to home</a></p>
+  
+  <h1>About MemoryFile</h1>
+  <p class="gray">Technical details, security model, and architecture</p>
+
+  <h2>Architecture</h2>
+
+  <p>A MemoryFile contains six components in a single HTML file:</p>
+
+  <ol>
+    <li><strong>HTML UI</strong> - The interface users see</li>
+    <li><strong>CSS styles</strong> - Visual presentation</li>
+    <li><strong>JavaScript app code</strong> - Application logic</li>
+    <li><strong>SQLite WASM library</strong> - Full SQL database engine (compiled to WebAssembly)</li>
+    <li><strong>Database binary</strong> - Actual data, encoded as base64</li>
+    <li><strong>Trust manager</strong> - Integrity verification code</li>
+  </ol>
+
+  <p>When you open the file, the browser decodes the base64 database, loads it into memory, and runs your app. When you save changes, the app exports the database, re-encodes it, rebuilds the entire HTML file with updated data, and writes it back to disk.</p>
+
+  <h2>File lifecycle</h2>
+
+  <pre>1. User opens myapp.html
+2. Browser loads and parses HTML
+3. JavaScript decodes base64 database
+4. SQLite WASM initializes in memory
+5. User interacts, modifies data
+6. User clicks "Save"
+7. SQLite exports database as binary
+8. JavaScript encodes as base64
+9. JavaScript rebuilds HTML with new data
+10. File System API writes updated file</pre>
+
+  <h2>Trust and verification</h2>
+
+  <p>Content-addressed filenames include a hash of the file's contents. This creates a cryptographic link between the filename and the actual content.</p>
+
+  <p>Example: <code>contract.a1b2c3d4.html</code></p>
+
+  <p>The hash <code>a1b2c3d4</code> is derived from SHA-256 of the entire file. Change one byte anywhere in the file, and the hash changes completely. This makes tampering detectable.</p>
+
+  <h3>How files verify themselves</h3>
+
+  <p>On load, the file:</p>
+  <ol>
+    <li>Reads its own filename</li>
+    <li>Extracts the hash from the filename</li>
+    <li>Hashes its own content</li>
+    <li>Compares expected hash vs actual hash</li>
+    <li>Shows VERIFIED (green) or TAMPERED (red) badge</li>
+  </ol>
+
+  <h3>Security model</h3>
+
+  <p>This is self-verification, not external verification. A sophisticated attacker could modify both the content and the verification code. However:</p>
+
+  <ul>
+    <li>The filename hash provides an external reference point</li>
+    <li>User can verify the hash manually if needed</li>
+    <li>Social context matters (did you receive this from the expected sender?)</li>
+    <li>Hash collision is computationally infeasible (SHA-256)</li>
+  </ul>
+
+  <p>This isn't blockchain. This isn't a certificate authority. This is a practical tamper-evident system for everyday file sharing.</p>
+
+  <h2>Browser compatibility</h2>
+
+  <table>
+    <tr>
+      <th>Feature</th>
+      <th>Chrome/Edge</th>
+      <th>Firefox</th>
+      <th>Safari</th>
+    </tr>
+    <tr>
+      <td>SQLite WASM</td>
+      <td>Yes</td>
+      <td>Yes</td>
+      <td>Yes</td>
+    </tr>
+    <tr>
+      <td>File System Access API</td>
+      <td>Yes</td>
+      <td>No</td>
+      <td>No</td>
+    </tr>
+    <tr>
+      <td>Download fallback</td>
+      <td>Yes</td>
+      <td>Yes</td>
+      <td>Yes</td>
+    </tr>
+  </table>
+
+  <p>Recommended: Chrome or Edge for best experience. Firefox and Safari work but use download-based saving instead of in-place file updates.</p>
+
+  <h2>Performance characteristics</h2>
+
+  <p>Tested on 2026 MacBook Pro (16GB RAM):</p>
+
+  <ul>
+    <li>Loading 10,000 rows: ~100ms</li>
+    <li>Inserting 1,000 rows: ~200ms</li>
+    <li>Complex JOIN query on 10,000 rows: ~50ms</li>
+    <li>Exporting 50MB database: ~500ms</li>
+    <li>Rebuilding HTML file: ~100ms</li>
+  </ul>
+
+  <p>Performance degrades with databases over 100MB. Base64 encoding adds 33% to file size. Entire database loads into memory, so very large files may crash the browser.</p>
+
+  <h2>Real-world limits</h2>
+
+  <p>Practical limits for smooth operation:</p>
+
+  <ul>
+    <li>Database size: 50-100 MB</li>
+    <li>Total file size: 65-130 MB (after base64 encoding)</li>
+    <li>Number of rows: 100,000-500,000 (depends on row size)</li>
+    <li>TEXT field size: 10 MB per field</li>
+  </ul>
+
+  <p>Your mileage will vary based on device memory, browser, and OS. Run <code>tests/limits-runner.html</code> to test your specific environment.</p>
+
+  <h2>Security considerations</h2>
+
+  <h3>What's protected</h3>
+  <ul>
+    <li>SQL injection (use parameterized queries)</li>
+    <li>File tampering detection (content-addressed filenames)</li>
+    <li>Data integrity (SHA-256 verification)</li>
+  </ul>
+
+  <h3>What's not protected</h3>
+  <ul>
+    <li>Data at rest encryption (database is base64-encoded, not encrypted)</li>
+    <li>Protection against malicious file content (standard XSS risks apply)</li>
+    <li>Supply chain attacks (depends on SQLite WASM integrity)</li>
+  </ul>
+
+  <p>For sensitive data, implement application-level encryption using Web Crypto API. Store keys separately from the HTML file.</p>
+
+  <p>See <a href="../SECURITY.md">SECURITY.md</a> for complete security documentation.</p>
+
+  <h2>Use cases</h2>
+
+  <h3>For developers</h3>
+  <ul>
+    <li>Build offline-first tools that work anywhere</li>
+    <li>Create portable data collection apps</li>
+    <li>Distribute datasets with built-in query interfaces</li>
+    <li>Prototype database-backed apps without server setup</li>
+    <li>Package documentation with searchable examples</li>
+  </ul>
+
+  <h3>For end users</h3>
+  <ul>
+    <li>Receive verified documents via email</li>
+    <li>Work with data offline (airplane, remote locations)</li>
+    <li>Trust files from unknown sources (verify badge + filename hash)</li>
+    <li>Keep personal databases (contacts, passwords, notes)</li>
+    <li>Share data without needing cloud services</li>
+  </ul>
+
+  <h2>Comparison to alternatives</h2>
+
+  <p><strong>vs LocalStorage:</strong> MemoryFile data is portable (can be emailed). LocalStorage is browser-specific.</p>
+
+  <p><strong>vs IndexedDB:</strong> MemoryFile uses SQL and is portable. IndexedDB is more performant but domain-locked.</p>
+
+  <p><strong>vs Server + Database:</strong> MemoryFile requires no server, no hosting, no accounts. Works offline. Single-user only.</p>
+
+  <p><strong>vs TiddlyWiki:</strong> MemoryFile uses SQL instead of JSON. Better for structured data and complex queries.</p>
+
+  <p><strong>vs SQLite files:</strong> MemoryFile bundles UI + data in one file. SQLite files need separate application to view.</p>
+
+  <h2>Technical approach: embedded vs OPFS</h2>
+
+  <p>MemoryFile supports two storage modes:</p>
+
+  <h3>Embedded mode (implemented in examples)</h3>
+  <p>Database encoded inside the HTML file. True portability, works offline, easy to share. But file size grows with data, and saves are slower.</p>
+
+  <h3>OPFS mode (Origin Private File System)</h3>
+  <p>Database stored in browser's private file system. Better performance, faster saves, no file bloat. But data isn't portable and is domain-specific.</p>
+
+  <h3>Hybrid approach (recommended)</h3>
+  <p>Use OPFS for daily work (performance). Export to embedded HTML when you need to share or backup (portability). Import embedded HTML back to OPFS when needed.</p>
+
+  <h2>API reference</h2>
+
+  <pre>// Initialize
+const sql = await initSqlJs({
+  locateFile: file => `lib/${file}`
+});
+
+// Load existing database
+const dbData = base64ToUint8Array(
+  document.getElementById('embedded-db')
+    .textContent
+);
+const db = new sql.Database(dbData);
+
+// Query data
+const result = db.exec(
+  'SELECT * FROM notes WHERE id = ?',
+  [noteId]
+);
+
+// Modify data
+db.run(
+  'INSERT INTO notes (title, body) VALUES (?, ?)',
+  [title, body]
+);
+
+// Export database
+const exported = db.export(); // Uint8Array
+const base64 = uint8ArrayToBase64(exported);
+
+// Rebuild HTML with new database
+const html = rebuildHTML(base64);
+
+// Save to file
+const handle = await window.showSaveFilePicker({
+  suggestedName: 'myapp.html'
+});
+const writable = await handle.createWritable();
+await writable.write(html);
+await writable.close();</pre>
+
+  <p>See <a href="../examples/">examples/</a> for complete working implementations.</p>
+
+  <h2>Testing</h2>
+
+  <p>200+ tests covering:</p>
+  <ul>
+    <li>Core database operations (50+ unit tests)</li>
+    <li>Integration workflows (40+ tests)</li>
+    <li>Performance benchmarks (30+ tests)</li>
+    <li>System limits (18+ tests)</li>
+    <li>Trust and verification (60+ tests)</li>
+  </ul>
+
+  <p>Run tests: Just double-click <code>test-runner.html</code> to open it in your browser</p>
+
+  <h2>Future possibilities</h2>
+
+  <p>Potential enhancements (not implemented yet):</p>
+
+  <ul>
+    <li>Compression before base64 encoding (reduce file size by 60-80%)</li>
+    <li>Incremental saves (only update changed data)</li>
+    <li>Application-level encryption (Web Crypto API)</li>
+    <li>Multi-file splitting for large datasets</li>
+    <li>P2P sync between instances (WebRTC)</li>
+    <li>Service Worker for offline caching</li>
+    <li>Digital signatures for creator verification</li>
+  </ul>
+
+  <h2>Project status</h2>
+
+  <p>MemoryFile is production-ready and open source (MIT License). Core library is complete and tested. This is a proof-of-concept demonstrating that self-contained, database-backed HTML files are feasible and practical.</p>
+
+  <p>The project prioritizes simplicity and offline operation over features. No build step, no dependencies beyond SQLite WASM, no server required.</p>
+
+  <hr style="margin: 48px 0; border: none; border-top: 1px solid rgba(0, 0, 0, 0.1);">
+
+  <p><a href="../">← Back to home</a></p>
+  
+  <p class="gray" style="font-size: 14px; margin-top: 32px;">
+    <a href="../README.md">Documentation</a> | 
+    <a href="../examples/">Examples</a> | 
+    <a href="../SECURITY.md">Security</a> | 
+    <a href="../docs/">Technical Docs</a>
+  </p>
+</body>
+</html>

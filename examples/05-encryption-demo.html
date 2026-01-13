@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="filename" content="05-encryption-demo.html">
+  <title>Encryption Demo</title>
+  <link rel="stylesheet" href="../lib/trust-badge.css">
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; }
+    input, textarea { width: 100%; padding: 10px; margin: 6px 0; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+    button { padding: 10px 20px; margin: 5px 5px 5px 0; border: none; border-radius: 4px; cursor: pointer; }
+    .primary { background: #667eea; color: white; }
+    .success { background: #4caf50; color: white; }
+    .warning { background: #ff9800; color: white; }
+    .record { background: white; padding: 12px; border-radius: 4px; margin: 8px 0; border-left: 4px solid #667eea; }
+    .info-box { background: #e8f5e9; border-left: 4px solid #4caf50; padding: 15px; margin: 15px 0; border-radius: 4px; }
+    .status { padding: 15px; border-radius: 4px; margin: 10px 0; font-size: 13px; }
+    .status-success { background: #e8f5e9; color: #2e7d32; }
+    .status-error { background: #ffebee; color: #c62828; }
+  </style>
+</head>
+<body>
+  <h1>Encryption Demo</h1>
+  <p>Secure your data with AES-256-GCM encryption.</p>
+
+  <div class="info-box">
+    <h3>Encryption Features</h3>
+    <p>AES-256-GCM with PBKDF2 key derivation (100,000 iterations).</p>
+    <p>Your password encrypts the database before saving.</p>
+  </div>
+
+  <h2>Password Setup</h2>
+  <input type="password" id="password" placeholder="Enter a secure password">
+  <button class="primary" onclick="initializeDatabase()">Initialize Encrypted Database</button>
+  <button class="primary" onclick="loadExistingDatabase()">Load Existing</button>
+  <div id="init-status"></div>
+
+  <h2>Add Sensitive Data</h2>
+  <input type="text" id="record-title" placeholder="Record title">
+  <textarea id="record-content" placeholder="Sensitive information..."></textarea>
+  <button class="success" onclick="addRecord()">Add Encrypted Record</button>
+  <div id="records-list"></div>
+
+  <h2>Save with Encryption</h2>
+  <input type="password" id="new-password" placeholder="New password (optional)">
+  <button class="success" onclick="saveEncrypted()">Save with Current Password</button>
+  <button class="warning" onclick="changePassword()">Change Password & Save</button>
+  <div id="save-status"></div>
+
+  <script type="application/json" id="embedded-db"></script>
+  <script src="../lib/sql-wasm.js"></script>
+  <script src="../lib/html-sqlite-core.js"></script>
+  <script src="../lib/trust-manager.js"></script>
+
+  <script>
+    let mf = null;
+    let trust = null;
+
+    trust = new TrustManager({
+      hashLength: 8,
+      showEncryption: true
+    });
+
+    async function initializeDatabase() {
+      const password = document.getElementById('password').value;
+      
+      if (!password) {
+        showStatus('init-status', 'Please enter a password', 'error');
+        return;
+      }
+
+      try {
+        mf = new MemoryFile({ encrypted: true });
+        await mf.initSQL();
+        await mf.createDatabase(`
+          CREATE TABLE sensitive_records (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            content TEXT NOT NULL,
+            created_at INTEGER DEFAULT (strftime('%s', 'now'))
+          )
+        `);
+
+        mf.currentPassword = password;
+        
+        trust.setEncryptionStatus(true, {
+          version: 1,
+          algorithm: 'AES-GCM-256',
+          kdf: 'PBKDF2',
+          iterations: 100000
+        });
+
+        showStatus('init-status', 'Encrypted database initialized', 'success');
+        loadRecords();
+      } catch (error) {
+        showStatus('init-status', `Error: ${error.message}`, 'error');
+      }
+    }
+
+    async function loadExistingDatabase() {
+      const password = document.getElementById('password').value;
+      
+      if (!password) {
+        showStatus('init-status', 'Please enter a password', 'error');
+        return;
+      }
+
+      try {
+        mf = new MemoryFile({ encrypted: true });
+        await mf.initSQL();
+        await mf.loadEmbeddedDatabase(password);
+        
+        showStatus('init-status', 'Database loaded and decrypted', 'success');
+        
+        const metadata = mf.getEncryptionMetadata();
+        trust.setEncryptionStatus(true, metadata);
+        
+        loadRecords();
+      } catch (error) {
+        showStatus('init-status', `Error: ${error.message}`, 'error');
+      }
+    }
+
+    function addRecord() {
+      if (!mf) {
+        showStatus('init-status', 'Please initialize database first', 'error');
+        return;
+      }
+
+      const title = document.getElementById('record-title').value;
+      const content = document.getElementById('record-content').value;
+
+      if (!title || !content) {
+        alert('Please enter both title and content');
+        return;
+      }
+
+      try {
+        mf.run('INSERT INTO sensitive_records (title, content) VALUES (?, ?)', [title, content]);
+
+        document.getElementById('record-title').value = '';
+        document.getElementById('record-content').value = '';
+
+        showStatus('init-status', 'Record added (will be encrypted on save)', 'success');
+        loadRecords();
+      } catch (error) {
+        showStatus('init-status', `Error: ${error.message}`, 'error');
+      }
+    }
+
+    function loadRecords() {
+      if (!mf) return;
+
+      try {
+        const results = mf.exec('SELECT * FROM sensitive_records ORDER BY id DESC');
+        const recordsList = document.getElementById('records-list');
+        
+        if (results.length === 0) {
+          recordsList.innerHTML = '<p>No records yet.</p>';
+          return;
+        }
+
+        recordsList.innerHTML = results.map(record => `
+          <div class="record">
+            <strong>${escapeHtml(record.title)}</strong><br>
+            ${escapeHtml(record.content)}
+          </div>
+        `).join('');
+      } catch (error) {
+        console.error('Error loading records:', error);
+      }
+    }
+
+    async function saveEncrypted() {
+      if (!mf) {
+        showStatus('save-status', 'Please initialize database first', 'error');
+        return;
+      }
+
+      const password = document.getElementById('password').value;
+      if (!password) {
+        showStatus('save-status', 'Please enter password', 'error');
+        return;
+      }
+
+      try {
+        const exportedDb = mf.exportDatabase();
+        const encrypted = await mf.encryptData(exportedDb, password);
+        const base64Db = mf.uint8ArrayToBase64(encrypted);
+        const htmlContent = mf.rebuildHTML(base64Db);
+        
+        const filename = await trust.generateCommitFilename('05-encryption-demo', htmlContent);
+        
+        const result = await mf.saveToFile(filename, password);
+        
+        if (result.success) {
+          showStatus('save-status', `File saved with encryption: ${filename}`, 'success');
+        }
+      } catch (error) {
+        showStatus('save-status', `Error: ${error.message}`, 'error');
+      }
+    }
+
+    async function changePassword() {
+      if (!mf) {
+        showStatus('save-status', 'Please initialize database first', 'error');
+        return;
+      }
+
+      const newPassword = document.getElementById('new-password').value;
+      if (!newPassword) {
+        showStatus('save-status', 'Please enter a new password', 'error');
+        return;
+      }
+
+      try {
+        const exportedDb = mf.exportDatabase();
+        const encrypted = await mf.encryptData(exportedDb, newPassword);
+        const base64Db = mf.uint8ArrayToBase64(encrypted);
+        const htmlContent = mf.rebuildHTML(base64Db);
+        
+        const filename = await trust.generateCommitFilename('05-encryption-demo', htmlContent);
+        
+        const result = await mf.saveToFile(filename, newPassword, true);
+        
+        if (result.success) {
+          document.getElementById('password').value = newPassword;
+          document.getElementById('new-password').value = '';
+          
+          showStatus('save-status', `Password changed: ${filename}`, 'success');
+        }
+      } catch (error) {
+        showStatus('save-status', `Error: ${error.message}`, 'error');
+      }
+    }
+
+    function showStatus(elementId, message, type) {
+      const statusDiv = document.getElementById(elementId);
+      statusDiv.innerHTML = `<div class="status status-${type}">${message}</div>`;
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+  </script>
+</body>
+</html>

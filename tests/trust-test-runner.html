@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trust System - Test Runner</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      min-height: 100vh;
+      padding: 2rem;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      overflow: hidden;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: white;
+      padding: 2rem;
+      text-align: center;
+    }
+
+    .header h1 {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .header p {
+      opacity: 0.9;
+      font-size: 1rem;
+    }
+
+    .trust-badge-demo {
+      background: #f0fdf4;
+      border: 2px solid #10b981;
+      border-radius: 8px;
+      padding: 1rem;
+      margin: 1rem 0;
+    }
+
+    .controls {
+      padding: 1.5rem;
+      background: #f8f9fa;
+      border-bottom: 1px solid #dee2e6;
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .controls button {
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 6px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: #10b981;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #059669;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
+    }
+
+    .btn-secondary {
+      background: #6c757d;
+      color: white;
+    }
+
+    .btn-secondary:hover {
+      background: #5a6268;
+    }
+
+    #output {
+      padding: 1.5rem;
+      font-family: 'Monaco', 'Courier New', monospace;
+      font-size: 0.875rem;
+      line-height: 1.6;
+      background: #f8f9fa;
+      min-height: 400px;
+      max-height: 600px;
+      overflow-y: auto;
+    }
+
+    .test-log {
+      padding: 0.25rem 0;
+      border-left: 3px solid transparent;
+      padding-left: 0.5rem;
+      margin: 2px 0;
+    }
+
+    .test-log-pass {
+      color: #059669;
+      border-color: #10b981;
+      background: #f0fdf4;
+    }
+
+    .test-log-fail {
+      color: #dc2626;
+      border-color: #ef4444;
+      background: #fef2f2;
+    }
+
+    .test-log-skip {
+      color: #d97706;
+      border-color: #f59e0b;
+      background: #fffbeb;
+    }
+
+    .test-log-summary {
+      font-weight: bold;
+      font-size: 1.1rem;
+      margin: 0.5rem 0;
+      color: #1f2937;
+    }
+
+    .test-log-error {
+      color: #991b1b;
+      font-size: 0.8rem;
+      padding-left: 2rem;
+      white-space: pre-wrap;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      padding: 1.5rem;
+      background: white;
+      border-top: 1px solid #dee2e6;
+    }
+
+    .stat-card {
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 1rem;
+      text-align: center;
+      border: 2px solid #e9ecef;
+    }
+
+    .stat-value {
+      font-size: 2rem;
+      font-weight: bold;
+      margin: 0.5rem 0;
+    }
+
+    .stat-label {
+      color: #6c757d;
+      font-size: 0.875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .stat-card.passed {
+      border-color: #10b981;
+      background: #f0fdf4;
+    }
+
+    .stat-card.passed .stat-value {
+      color: #059669;
+    }
+
+    .stat-card.failed {
+      border-color: #ef4444;
+      background: #fef2f2;
+    }
+
+    .stat-card.failed .stat-value {
+      color: #dc2626;
+    }
+
+    .note {
+      padding: 1.5rem;
+      background: #eff6ff;
+      border-left: 4px solid #3b82f6;
+      margin: 1rem 0;
+    }
+
+    .note h3 {
+      color: #1e40af;
+      margin-bottom: 0.5rem;
+    }
+
+    .note p {
+      color: #1e3a8a;
+      line-height: 1.6;
+    }
+  </style>
+  
+  <link rel="stylesheet" href="lib/trust-badge.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🔒 Trust System Test Suite</h1>
+      <p>Comprehensive tests for integrity verification and content-addressed files</p>
+    </div>
+
+    <div class="controls">
+      <button class="btn-primary" id="run-all">▶️ Run All Tests</button>
+      <button class="btn-secondary" id="clear-output">🗑️ Clear Output</button>
+      <span style="flex: 1"></span>
+      <span id="status">Ready</span>
+    </div>
+
+    <div class="note">
+      <h3>📋 Test Categories</h3>
+      <p>
+        <strong>Initialization:</strong> TrustManager instance creation and configuration<br>
+        <strong>Content Hashing:</strong> SHA-256 hash generation and consistency<br>
+        <strong>Filename Extraction:</strong> Parsing content-addressed filenames<br>
+        <strong>Filename Generation:</strong> Creating content-addressed filenames<br>
+        <strong>Verification:</strong> Integrity checking and tamper detection<br>
+        <strong>Badge System:</strong> Visual trust indicator rendering<br>
+        <strong>Integration:</strong> End-to-end verification workflows<br>
+        <strong>Performance:</strong> Speed benchmarks<br>
+        <strong>Edge Cases:</strong> Boundary conditions and error handling
+      </p>
+    </div>
+
+    <div id="output"></div>
+
+    <div class="stats">
+      <div class="stat-card passed">
+        <div class="stat-label">Passed</div>
+        <div class="stat-value" id="stat-passed">0</div>
+      </div>
+      <div class="stat-card failed">
+        <div class="stat-label">Failed</div>
+        <div class="stat-value" id="stat-failed">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total</div>
+        <div class="stat-value" id="stat-total">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Duration</div>
+        <div class="stat-value" id="stat-duration">0ms</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Success Rate</div>
+        <div class="stat-value" id="stat-rate">0%</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Test Dependencies -->
+  <script src="lib/test-utils.js"></script>
+  <script src="lib/trust-manager.js"></script>
+  <script src="lib/trust-tests.js"></script>
+
+  <script>
+    const outputEl = document.getElementById('output');
+    const statusEl = document.getElementById('status');
+    const btnRunAll = document.getElementById('run-all');
+    const btnClear = document.getElementById('clear-output');
+    
+    const statEls = {
+      passed: document.getElementById('stat-passed'),
+      failed: document.getElementById('stat-failed'),
+      total: document.getElementById('stat-total'),
+      duration: document.getElementById('stat-duration'),
+      rate: document.getElementById('stat-rate')
+    };
+
+    const runner = new TestRunner();
+
+    // Register all trust tests
+    async function initTests() {
+      await registerTrustTests(runner);
+      statusEl.textContent = `${runner.tests.length} tests registered`;
+    }
+
+    // Run all tests
+    btnRunAll.addEventListener('click', async () => {
+      btnRunAll.disabled = true;
+      statusEl.textContent = 'Running tests...';
+      outputEl.innerHTML = '';
+      
+      try {
+        const results = await runner.runAll(outputEl);
+        
+        // Update stats
+        statEls.passed.textContent = results.passed;
+        statEls.failed.textContent = results.failed;
+        statEls.total.textContent = results.total;
+        statEls.duration.textContent = (runner.endTime - runner.startTime) + 'ms';
+        
+        const successRate = results.total > 0 
+          ? ((results.passed / results.total) * 100).toFixed(1)
+          : 0;
+        statEls.rate.textContent = successRate + '%';
+        
+        // Update status
+        if (results.failed === 0) {
+          statusEl.textContent = '✅ All tests passed!';
+          statusEl.style.color = '#059669';
+        } else {
+          statusEl.textContent = `❌ ${results.failed} test(s) failed`;
+          statusEl.style.color = '#dc2626';
+        }
+      } catch (error) {
+        statusEl.textContent = '❌ Test run failed';
+        statusEl.style.color = '#dc2626';
+        console.error('Test run error:', error);
+      }
+      
+      btnRunAll.disabled = false;
+    });
+
+    // Clear output
+    btnClear.addEventListener('click', () => {
+      outputEl.innerHTML = '';
+      statusEl.textContent = 'Ready';
+      statusEl.style.color = '';
+      
+      // Reset stats
+      statEls.passed.textContent = '0';
+      statEls.failed.textContent = '0';
+      statEls.total.textContent = '0';
+      statEls.duration.textContent = '0ms';
+      statEls.rate.textContent = '0%';
+    });
+
+    // Initialize on page load
+    initTests();
+  </script>
+</body>
+</html>

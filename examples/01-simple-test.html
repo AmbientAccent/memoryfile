@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simple Test</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; }
+    button { background: #667eea; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; margin: 5px; }
+    button:hover { background: #5568d3; }
+    #output { background: #f8f9fa; padding: 15px; border-radius: 4px; margin-top: 15px; font-family: monospace; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h1>Simple Test</h1>
+  <p>Basic test of MemoryFile library functionality.</p>
+  
+  <button onclick="runTest()">Run Test</button>
+  <div id="output"></div>
+
+  <script id="embedded-db" type="application/x-sqlite3"></script>
+  <script src="../lib/sql-wasm.js"></script>
+  <script src="../lib/html-sqlite-core.js"></script>
+
+  <script>
+    let mf = null;
+    let output = document.getElementById('output');
+
+    function log(message) {
+      output.textContent += message + '\n';
+    }
+
+    async function runTest() {
+      output.textContent = '';
+      log('Starting test...\n');
+
+      try {
+        // Initialize
+        mf = new MemoryFile();
+        await mf.createDatabase();
+        log('Database created');
+
+        // Create table
+        mf.run('CREATE TABLE todos (id INTEGER PRIMARY KEY, task TEXT, completed INTEGER DEFAULT 0)');
+        log('Table created');
+
+        // Insert data
+        mf.run('INSERT INTO todos (task) VALUES (?)', ['Buy groceries']);
+        mf.run('INSERT INTO todos (task) VALUES (?)', ['Walk the dog']);
+        log('Inserted 2 todos');
+
+        // Query data
+        const todos = mf.exec('SELECT * FROM todos');
+        log(`Found ${todos.length} todos:`);
+        todos.forEach(todo => {
+          log(`  - ${todo.task}`);
+        });
+
+        // Update data
+        mf.run('UPDATE todos SET completed = 1 WHERE id = 1');
+        const updated = mf.exec('SELECT * FROM todos WHERE id = 1');
+        log(`\nUpdated: ${updated[0].task} is now completed`);
+
+        // Statistics
+        log(`\nDatabase size: ${(mf.getDatabaseSize() / 1024).toFixed(2)} KB`);
+        log(`Tables: ${mf.getTables().join(', ')}`);
+
+        log('\nTest completed');
+      } catch (error) {
+        log(`Error: ${error.message}`);
+      }
+    }
+  </script>
+</body>
+</html>

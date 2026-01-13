@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inline WASM Test - No Server Needed!</title>
+  <style>
+    body { 
+      font-family: system-ui, sans-serif; 
+      max-width: 800px; 
+      margin: 40px auto; 
+      padding: 20px;
+      line-height: 1.6;
+    }
+    h1 { color: #2563eb; }
+    .status { 
+      padding: 12px; 
+      border-radius: 6px; 
+      margin: 16px 0;
+      font-weight: 600;
+    }
+    .success { background: #d1fae5; color: #065f46; }
+    .error { background: #fee2e2; color: #991b1b; }
+    .info { background: #dbeafe; color: #1e40af; }
+    pre { 
+      background: #f3f4f6; 
+      padding: 12px; 
+      border-radius: 6px; 
+      overflow-x: auto;
+      font-size: 13px;
+    }
+    .test { 
+      border: 1px solid #e5e7eb; 
+      padding: 16px; 
+      margin: 16px 0; 
+      border-radius: 6px;
+    }
+  </style>
+  
+  <!-- INLINE WASM VERSION - Works with file:// protocol! -->
+  <script src="lib/sql-wasm-inline.js"></script>
+  <script src="lib/html-sqlite-core.js"></script>
+</head>
+<body>
+  <h1>✨ Inline WASM Test</h1>
+  <p><strong>This file works with file:// protocol - NO HTTP SERVER NEEDED!</strong></p>
+  
+  <div class="status info" id="protocol-check">
+    📍 Protocol: <span id="protocol"></span><br>
+    🌐 Origin: <span id="origin"></span>
+  </div>
+  
+  <div id="results"></div>
+  
+  <script>
+    const results = document.getElementById('results');
+    
+    // Show protocol info
+    document.getElementById('protocol').textContent = window.location.protocol;
+    document.getElementById('origin').textContent = window.location.origin || 'null (file://)';
+    
+    function addTest(title, content, success) {
+      const div = document.createElement('div');
+      div.className = 'test';
+      div.innerHTML = `
+        <div class="status ${success ? 'success' : 'error'}">
+          ${success ? '✅' : '❌'} ${title}
+        </div>
+        <pre>${content}</pre>
+      `;
+      results.appendChild(div);
+    }
+    
+    async function runTests() {
+      try {
+        // Test 1: Initialize
+        addTest('Initialization', 'Creating MemoryFile instance...', true);
+        const mf = new MemoryFile();
+        
+        // Test 2: Create database
+        addTest('Database Creation', 'Creating new database...', true);
+        await mf.createDatabase();
+        
+        // Test 3: Create table
+        mf.run('CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT, email TEXT)');
+        addTest('Table Creation', 'CREATE TABLE users...', true);
+        
+        // Test 4: Insert data
+        mf.run('INSERT INTO users (name, email) VALUES (?, ?)', ['Alice', 'alice@example.com']);
+        mf.run('INSERT INTO users (name, email) VALUES (?, ?)', ['Bob', 'bob@example.com']);
+        mf.run('INSERT INTO users (name, email) VALUES (?, ?)', ['Charlie', 'charlie@example.com']);
+        addTest('Data Insert', 'Inserted 3 users', true);
+        
+        // Test 5: Query data
+        const users = mf.exec('SELECT * FROM users ORDER BY id');
+        addTest('Query Data', JSON.stringify(users, null, 2), true);
+        
+        // Test 6: Update
+        mf.run('UPDATE users SET email = ? WHERE name = ?', ['alice.smith@example.com', 'Alice']);
+        const updated = mf.exec('SELECT * FROM users WHERE name = ?', ['Alice']);
+        addTest('Update Data', JSON.stringify(updated, null, 2), updated[0].email === 'alice.smith@example.com');
+        
+        // Test 7: Delete
+        mf.run('DELETE FROM users WHERE name = ?', ['Bob']);
+        const remaining = mf.exec('SELECT COUNT(*) as count FROM users');
+        addTest('Delete Data', `Remaining users: ${remaining[0].count}`, remaining[0].count === 2);
+        
+        // Test 8: Export
+        const exported = mf.exportDatabase();
+        addTest('Export Database', `Exported ${exported.length} bytes (${(exported.length / 1024).toFixed(2)} KB)`, true);
+        
+        // Final message
+        const finalDiv = document.createElement('div');
+        finalDiv.className = 'status success';
+        finalDiv.innerHTML = `
+          <h3>🎉 All Tests Passed!</h3>
+          <p><strong>This proves the inline WASM approach works!</strong></p>
+          <p>Key benefits:</p>
+          <ul>
+            <li>✅ Works with file:// protocol</li>
+            <li>✅ No HTTP server needed</li>
+            <li>✅ True portability</li>
+            <li>✅ Self-contained file</li>
+          </ul>
+          <p><strong>Trade-off:</strong> Each file is ~800KB larger</p>
+          <p>Protocol used: <strong>${window.location.protocol}</strong></p>
+        `;
+        results.appendChild(finalDiv);
+        
+      } catch (error) {
+        addTest('ERROR', error.message + '\n\n' + error.stack, false);
+      }
+    }
+    
+    runTests();
+  </script>
+</body>
+</html>

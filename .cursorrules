@@ -1,0 +1,27 @@
+# Documentation Style
+
+Write like a colleague explaining to another developer. Be direct and technical.
+
+## Avoid
+
+- Emojis in documentation (no ✅ 🚀 🎉 ⚠️ etc.)
+- Strong-emphasis lists: `- **Label** - Description` or `**Label:** Description`
+- Trailing colons on headings: `## Heading:` or `### Section Name:`
+- Trailing colons on list items: `- Item Name:` followed by description
+- Delivery language: "What Was Delivered", "Mission Accomplished"
+- Marketing phrases: "Perfect for", "Built with", "Ideal for"
+- Em dashes (—)
+- Status tables with checkmarks
+- Excessive enthusiasm and exclamation marks
+- Meta-documentation about documentation
+- ASCII art diagrams (use mermaid instead)
+- Project structure trees in README
+
+## Do
+
+- Use plain prose or simple bullet lists
+- State facts directly
+- Use code examples instead of explanations
+- One heading style per document
+- Use simple mermaid diagrams when visuals help
+- Keep README focused on getting started
