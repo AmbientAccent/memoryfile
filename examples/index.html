@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MemoryFile Examples</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, system-ui, sans-serif;
+      line-height: 1.5;
+      background: #fff;
+      color: #000;
+      padding: 60px 24px;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 32px;
+      font-weight: 600;
+      letter-spacing: -0.5px;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      color: #666;
+      margin-bottom: 48px;
+    }
+
+    .examples {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .example-link {
+      display: block;
+      padding: 16px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      text-decoration: none;
+      color: #000;
+      transition: border-color 0.15s;
+    }
+
+    .example-link:hover {
+      border-color: #000;
+    }
+
+    .example-title {
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+
+    .example-desc {
+      font-size: 14px;
+      color: #666;
+    }
+
+    footer {
+      margin-top: 48px;
+      padding-top: 24px;
+      border-top: 1px solid #eee;
+      color: #999;
+      font-size: 14px;
+    }
+
+    footer a {
+      color: #999;
+      text-decoration: none;
+    }
+
+    footer a:hover {
+      color: #000;
+      text-decoration: underline;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      body { background: #000; color: #fff; }
+      .example-link { border-color: #333; color: #fff; }
+      .example-link:hover { border-color: #666; }
+      footer { border-top-color: #222; }
+      footer a:hover { color: #fff; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Examples</h1>
+    <p class="subtitle">Interactive demonstrations of MemoryFile features</p>
+
+    <div class="examples">
+      <a href="01-basic-demo-inline.html" class="example-link">
+        <div class="example-title">01. Basic Demo (Inline)</div>
+        <div class="example-desc">Simple note-taking with inline SQLite WASM</div>
+      </a>
+
+      <a href="01-basic-demo.html" class="example-link">
+        <div class="example-title">01. Basic Demo</div>
+        <div class="example-desc">Simple note-taking with external SQLite library</div>
+      </a>
+
+      <a href="01-simple-test.html" class="example-link">
+        <div class="example-title">01. Simple Test</div>
+        <div class="example-desc">Basic functionality test</div>
+      </a>
+
+      <a href="02-commit-demo.html" class="example-link">
+        <div class="example-title">02. Commit Demo</div>
+        <div class="example-desc">Demonstrates commit history tracking</div>
+      </a>
+
+      <a href="03-notes-as-commits.html" class="example-link">
+        <div class="example-title">03. Notes as Commits</div>
+        <div class="example-desc">Each note is a separate commit</div>
+      </a>
+
+      <a href="04-trust-demo-inline.html" class="example-link">
+        <div class="example-title">04. Trust Demo (Inline)</div>
+        <div class="example-desc">Trust verification with inline SQLite WASM</div>
+      </a>
+
+      <a href="04-trust-demo.html" class="example-link">
+        <div class="example-title">04. Trust Demo</div>
+        <div class="example-desc">Trust verification with external SQLite library</div>
+      </a>
+
+      <a href="05-encryption-demo-inline.html" class="example-link">
+        <div class="example-title">05. Encryption Demo (Inline)</div>
+        <div class="example-desc">Password-based encryption with inline SQLite WASM</div>
+      </a>
+
+      <a href="05-encryption-demo.html" class="example-link">
+        <div class="example-title">05. Encryption Demo</div>
+        <div class="example-desc">Password-based encryption with external SQLite library</div>
+      </a>
+
+      <a href="06-limits-demo.html" class="example-link">
+        <div class="example-title">06. Limits Demo</div>
+        <div class="example-desc">Testing size limits and performance</div>
+      </a>
+
+      <a href="limits-demo.html" class="example-link">
+        <div class="example-title">Limits Demo</div>
+        <div class="example-desc">Additional limits testing</div>
+      </a>
+    </div>
+
+    <footer>
+      <a href="../">← Back to home</a>
+    </footer>
+  </div>
+</body>
+</html>

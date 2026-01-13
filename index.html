@@ -250,7 +250,7 @@
     <footer>
       <a href="https://github.com/AmbientAccent/memoryfile">GitHub</a> ·
       <a href="examples/">Examples</a> ·
-      <a href="docs/ARCHITECTURE.md">Docs</a> ·
+      <a href="https://github.com/AmbientAccent/memoryfile/tree/main/docs">Docs</a> ·
       MIT License
     </footer>
   </div>
@@ -427,24 +427,33 @@
           commitMessage: text.slice(0, 50),
           commitDate: now
         };
-        
-        // Build HTML
+
+        // Update DOM state BEFORE capturing HTML to avoid race condition
+        metadata = newMetadata;
+        input.value = '';
+        setModified(false);
+        render();
+        renderCommits();
+        updateSize();
+        statusText.textContent = 'Ready';
+
+        // Build HTML (now captures correct state)
         const dbBase64 = bytesToB64(db.export());
         let html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
-        
+
         html = html.replace(
           /(<script id="embedded-db"[^>]*>)([\s\S]*?)(<\/script>)/,
           `$1\n${dbBase64}\n$3`
         );
-        
+
         html = html.replace(
           /(<script id="commit-metadata"[^>]*>)([\s\S]*?)(<\/script>)/,
           `$1\n${JSON.stringify(newMetadata, null, 2)}\n$3`
         );
-        
+
         // Save file
         const filename = `memoryfile.${newHash}.html`;
-        
+
         if ('showSaveFilePicker' in window) {
           try {
             const handle = await window.showSaveFilePicker({
@@ -470,15 +479,6 @@
           a.click();
           URL.revokeObjectURL(a.href);
         }
-        
-        // Update state
-        metadata = newMetadata;
-        input.value = '';
-        setModified(false);
-        render();
-        renderCommits();
-        updateSize();
-        statusText.textContent = 'Ready';
         
       } catch (err) {
         statusText.textContent = 'Error: ' + err.message;
