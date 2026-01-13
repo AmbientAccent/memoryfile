@@ -1,0 +1,32 @@
+name: Greetings
+
+on: [pull_request_target, issues]
+
+jobs:
+  greeting:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+    steps:
+    - uses: actions/first-interaction@v1
+      with:
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+        issue-message: |
+          👋 Thanks for opening your first issue! We appreciate your contribution to MemoryFile.
+          
+          Please make sure you've:
+          - Searched for similar issues
+          - Provided a clear description
+          - Included steps to reproduce (if applicable)
+          
+          A maintainer will review your issue soon.
+        pr-message: |
+          🎉 Thanks for your first pull request! We're excited to review your contribution.
+          
+          Please make sure:
+          - All tests pass
+          - Documentation is updated (if needed)
+          - Your changes follow our coding guidelines
+          
+          A maintainer will review your PR soon.

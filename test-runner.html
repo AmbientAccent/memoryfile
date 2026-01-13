@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HTML-SQLite Fusion - Test Runner</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+        'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 2rem;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      overflow: hidden;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 2rem;
+      text-align: center;
+    }
+
+    .header h1 {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .header p {
+      opacity: 0.9;
+      font-size: 1rem;
+    }
+
+    .controls {
+      padding: 1.5rem;
+      background: #f8f9fa;
+      border-bottom: 1px solid #dee2e6;
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .controls button {
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 6px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .controls button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    .btn-primary {
+      background: #667eea;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #5568d3;
+    }
+
+    .btn-secondary {
+      background: #6c757d;
+      color: white;
+    }
+
+    .btn-secondary:hover {
+      background: #5a6268;
+    }
+
+    .btn-success {
+      background: #28a745;
+      color: white;
+    }
+
+    .btn-success:hover {
+      background: #218838;
+    }
+
+    .btn-danger {
+      background: #dc3545;
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background: #c82333;
+    }
+
+    .controls select {
+      padding: 0.75rem;
+      border: 1px solid #ced4da;
+      border-radius: 6px;
+      font-size: 1rem;
+      background: white;
+      cursor: pointer;
+    }
+
+    .stats {
+      padding: 1.5rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 1rem;
+      background: #f8f9fa;
+    }
+
+    .stat-card {
+      background: white;
+      padding: 1rem;
+      border-radius: 6px;
+      border-left: 4px solid #667eea;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .stat-card.passed {
+      border-left-color: #28a745;
+    }
+
+    .stat-card.failed {
+      border-left-color: #dc3545;
+    }
+
+    .stat-card.skipped {
+      border-left-color: #ffc107;
+    }
+
+    .stat-label {
+      font-size: 0.875rem;
+      color: #6c757d;
+      margin-bottom: 0.25rem;
+    }
+
+    .stat-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #212529;
+    }
+
+    .output {
+      padding: 1.5rem;
+      max-height: 600px;
+      overflow-y: auto;
+      background: #212529;
+      color: #f8f9fa;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 0.875rem;
+      line-height: 1.5;
+    }
+
+    .test-log {
+      padding: 0.25rem 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .test-log-pass {
+      color: #28a745;
+    }
+
+    .test-log-fail {
+      color: #dc3545;
+    }
+
+    .test-log-skip {
+      color: #ffc107;
+    }
+
+    .test-log-error {
+      color: #ff6b6b;
+      margin-left: 2rem;
+      font-size: 0.8rem;
+    }
+
+    .test-log-summary {
+      color: #4fc3f7;
+      font-weight: bold;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 2rem;
+      color: #6c757d;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 40px;
+      height: 40px;
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #667eea;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 1rem;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .progress-bar {
+      height: 4px;
+      background: #e9ecef;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+
+    .browser-info {
+      padding: 1rem 1.5rem;
+      background: #fff3cd;
+      border-left: 4px solid #ffc107;
+      margin: 1.5rem;
+      border-radius: 4px;
+    }
+
+    .browser-info h3 {
+      color: #856404;
+      margin-bottom: 0.5rem;
+      font-size: 1rem;
+    }
+
+    .browser-info code {
+      background: rgba(0, 0, 0, 0.05);
+      padding: 0.2rem 0.4rem;
+      border-radius: 3px;
+      font-size: 0.875rem;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.5rem;
+      border-radius: 3px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-left: 0.5rem;
+    }
+
+    .badge-success {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .badge-danger {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🧪 HTML-SQLite Fusion Test Suite</h1>
+      <p>Comprehensive testing for self-persistent web applications</p>
+    </div>
+
+    <div class="browser-info" id="browserInfo">
+      <h3>⚙️ Browser Support</h3>
+      <div id="browserSupportDetails">Loading browser capabilities...</div>
+    </div>
+
+    <div class="controls">
+      <button id="runAllBtn" class="btn-primary">▶️ Run All Tests</button>
+      <button id="runUnitBtn" class="btn-secondary">Unit Tests</button>
+      <button id="runIntegrationBtn" class="btn-secondary">Integration Tests</button>
+      <button id="runPerformanceBtn" class="btn-secondary">Performance Tests</button>
+      <button id="clearBtn" class="btn-danger">🗑️ Clear Output</button>
+      <select id="testFilter">
+        <option value="all">All Tests</option>
+        <option value="unit">Unit Tests Only</option>
+        <option value="integration">Integration Tests Only</option>
+        <option value="performance">Performance Tests Only</option>
+      </select>
+    </div>
+
+    <div class="progress-bar">
+      <div class="progress-bar-fill" id="progressBar"></div>
+    </div>
+
+    <div class="stats" id="stats">
+      <div class="stat-card">
+        <div class="stat-label">Total Tests</div>
+        <div class="stat-value" id="totalTests">0</div>
+      </div>
+      <div class="stat-card passed">
+        <div class="stat-label">Passed ✓</div>
+        <div class="stat-value" id="passedTests">0</div>
+      </div>
+      <div class="stat-card failed">
+        <div class="stat-label">Failed ✗</div>
+        <div class="stat-value" id="failedTests">0</div>
+      </div>
+      <div class="stat-card skipped">
+        <div class="stat-label">Skipped ⊘</div>
+        <div class="stat-value" id="skippedTests">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Duration</div>
+        <div class="stat-value" id="duration">0ms</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Success Rate</div>
+        <div class="stat-value" id="successRate">0%</div>
+      </div>
+    </div>
+
+    <div class="output" id="output">
+      <div class="loading">
+        <div class="spinner"></div>
+        <div>Ready to run tests. Click "Run All Tests" to begin.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Embedded Database Placeholder -->
+  <script id="embedded-db" type="application/x-sqlite3"></script>
+
+  <!-- SQLite WASM - Uses standard version (sql-wasm.js) for development
+       This requires running a local HTTP server: python3 -m http.server 3000
+       The standard version loads sql-wasm.wasm separately (~50KB overhead)
+       For no-server usage, use sql-wasm-inline.js instead (~850KB overhead) -->
+  <script src="lib/sql-wasm.js"></script>
+
+  <!-- Core Library -->
+  <script src="lib/html-sqlite-core.js"></script>
+
+  <!-- Test Framework -->
+  <script src="lib/test-utils.js"></script>
+
+  <!-- Test Suites -->
+  <script src="lib/unit-tests.js"></script>
+  <script src="lib/integration-tests.js"></script>
+  <script src="lib/performance-tests.js"></script>
+
+  <!-- Main Test Runner -->
+  <script>
+    // Global test runner instance
+    let testRunner;
+    let currentResults = null;
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', async () => {
+      // Check browser support
+      await checkBrowserSupport();
+
+      // Initialize test runner
+      testRunner = new TestRunner();
+
+      // Make utilities available globally
+      window.Assert = Assert;
+      window.MockDatabase = MockDatabase;
+      window.PerformanceTest = PerformanceTest;
+      window.TestDataGenerator = TestDataGenerator;
+
+      // Register all tests
+      await registerAllTests();
+
+      // Setup button handlers
+      setupEventHandlers();
+
+      console.log('✅ Test runner initialized. Ready to run tests.');
+    });
+
+    async function checkBrowserSupport() {
+      const support = await HTMLSQLiteFusion.getBrowserSupport();
+      const browserInfo = document.getElementById('browserSupportDetails');
+      
+      browserInfo.innerHTML = `
+        <div>
+          <strong>WebAssembly:</strong> ${support.webAssembly ? '✅' : '❌'}
+          <strong>File System Access API:</strong> ${support.fileSystemAccess ? '✅' : '❌'}
+          <strong>OPFS:</strong> ${support.opfs ? '✅' : '❌'}
+          <strong>IndexedDB:</strong> ${support.indexedDB ? '✅' : '❌'}
+        </div>
+        ${!support.fileSystemAccess ? '<div style="margin-top: 0.5rem; font-size: 0.875rem;">⚠️ File System Access API not supported. Save will use download fallback.</div>' : ''}
+      `;
+    }
+
+    async function registerAllTests() {
+      console.log('📝 Registering test suites...');
+      
+      // Register unit tests
+      if (typeof registerUnitTests === 'function') {
+        await registerUnitTests(testRunner);
+        console.log('✅ Unit tests registered');
+      }
+
+      // Register integration tests
+      if (typeof registerIntegrationTests === 'function') {
+        await registerIntegrationTests(testRunner);
+        console.log('✅ Integration tests registered');
+      }
+
+      // Register performance tests
+      if (typeof registerPerformanceTests === 'function') {
+        await registerPerformanceTests(testRunner);
+        console.log('✅ Performance tests registered');
+      }
+
+      console.log(`📊 Total tests registered: ${testRunner.tests.length}`);
+    }
+
+    function setupEventHandlers() {
+      document.getElementById('runAllBtn').addEventListener('click', () => runTests('all'));
+      document.getElementById('runUnitBtn').addEventListener('click', () => runTests('unit'));
+      document.getElementById('runIntegrationBtn').addEventListener('click', () => runTests('integration'));
+      document.getElementById('runPerformanceBtn').addEventListener('click', () => runTests('performance'));
+      document.getElementById('clearBtn').addEventListener('click', clearOutput);
+    }
+
+    async function runTests(type = 'all') {
+      // Clear previous output
+      clearOutput();
+
+      // Show loading
+      const output = document.getElementById('output');
+      output.innerHTML = '<div class="loading"><div class="spinner"></div><div>Running tests...</div></div>';
+
+      // Reset progress bar
+      document.getElementById('progressBar').style.width = '0%';
+
+      // Filter tests if needed
+      let testsToRun = testRunner.tests;
+      if (type !== 'all') {
+        testsToRun = testRunner.tests.filter(t => {
+          if (type === 'unit') return t.name.includes('Initialization') || t.name.includes('Database Creation') || t.name.includes('SQL Execution') || t.name.includes('Prepared Statements') || t.name.includes('Database Export') || t.name.includes('Base64 Encoding') || t.name.includes('Database Metadata') || t.name.includes('Transactions') || t.name.includes('Browser Support') || t.name.includes('Error Handling') || t.name.includes('Memory Management') || t.name.includes('Index') || t.name.includes('Foreign Keys');
+          if (type === 'integration') return t.name.includes('Complete Workflow') || t.name.includes('Save and Load') || t.name.includes('Multi-Table') || t.name.includes('Migration') || t.name.includes('Real-World') || t.name.includes('Edge Cases');
+          if (type === 'performance') return t.name.includes('Performance') || t.name.includes('benchmark') || t.name.includes('Scalability') || t.name.includes('Memory');
+          return true;
+        });
+        
+        // Temporarily replace the tests array
+        const originalTests = testRunner.tests;
+        testRunner.tests = testsToRun;
+      }
+
+      // Wait a bit for UI to update
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Run tests
+      try {
+        currentResults = await testRunner.runAll(output);
+        
+        // Update stats
+        updateStats(currentResults);
+        
+        // Update progress bar
+        document.getElementById('progressBar').style.width = '100%';
+        
+      } catch (error) {
+        console.error('Test runner error:', error);
+        output.innerHTML += `<div class="test-log test-log-fail">Fatal error: ${error.message}</div>`;
+      }
+    }
+
+    function updateStats(results) {
+      document.getElementById('totalTests').textContent = results.total;
+      document.getElementById('passedTests').textContent = results.passed;
+      document.getElementById('failedTests').textContent = results.failed;
+      document.getElementById('skippedTests').textContent = results.skipped;
+      
+      const duration = testRunner.endTime - testRunner.startTime;
+      document.getElementById('duration').textContent = duration + 'ms';
+      
+      const successRate = results.total > 0 
+        ? ((results.passed / results.total) * 100).toFixed(1)
+        : 0;
+      document.getElementById('successRate').textContent = successRate + '%';
+    }
+
+    function clearOutput() {
+      const output = document.getElementById('output');
+      output.innerHTML = '<div class="loading"><div>Output cleared. Ready for next test run.</div></div>';
+      
+      // Reset stats
+      document.getElementById('totalTests').textContent = '0';
+      document.getElementById('passedTests').textContent = '0';
+      document.getElementById('failedTests').textContent = '0';
+      document.getElementById('skippedTests').textContent = '0';
+      document.getElementById('duration').textContent = '0ms';
+      document.getElementById('successRate').textContent = '0%';
+      
+      // Reset progress bar
+      document.getElementById('progressBar').style.width = '0%';
+    }
+
+    // Export test results
+    window.exportTestResults = function() {
+      if (!currentResults) {
+        alert('No test results to export. Run tests first.');
+        return;
+      }
+
+      const data = {
+        timestamp: new Date().toISOString(),
+        results: currentResults,
+        browserInfo: navigator.userAgent
+      };
+
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `test-results-${Date.now()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    };
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      if (e.ctrlKey || e.metaKey) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          runTests('all');
+        } else if (e.key === 'k') {
+          e.preventDefault();
+          clearOutput();
+        }
+      }
+    });
+  </script>
+</body>
+</html>

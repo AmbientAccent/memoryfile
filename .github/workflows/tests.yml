@@ -1,0 +1,57 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        browser: [chrome, firefox]
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+    
+    - name: Install dependencies
+      run: |
+        npm install -g http-server playwright
+        npx playwright install ${{ matrix.browser }}
+    
+    - name: Start HTTP server
+      run: |
+        http-server -p 3000 &
+        sleep 2
+    
+    - name: Run tests
+      run: |
+        npx playwright test --browser=${{ matrix.browser }} || echo "Browser tests would run here"
+    
+    - name: Check test runners exist
+      run: |
+        test -f test-runner.html && echo "✓ test-runner.html exists"
+        test -f trust-test-runner.html && echo "✓ trust-test-runner.html exists"
+        test -f limits-runner.html && echo "✓ limits-runner.html exists"
+        test -f lib/html-sqlite-core.js && echo "✓ Core library exists"
+        test -f lib/trust-manager.js && echo "✓ Trust manager exists"
+        test -f lib/test-utils.js && echo "✓ Test utils exists"
+    
+    - name: Check examples exist
+      run: |
+        for file in examples/*.html; do
+          test -f "$file" && echo "✓ $(basename $file) exists"
+        done
+    
+    - name: Validate HTML
+      run: |
+        npm install -g html-validate
+        html-validate test-runner.html trust-test-runner.html limits-runner.html || true

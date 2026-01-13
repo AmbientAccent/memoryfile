@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="filename" content="04-trust-demo.html">
+  <title>Trust Demo</title>
+  <link rel="stylesheet" href="../lib/trust-badge.css">
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 24px; max-width: 800px; }
+    input, textarea { width: 100%; padding: 8px; margin: 6px 0; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+    button { padding: 8px 16px; margin: 8px 8px 8px 0; border: none; border-radius: 4px; cursor: pointer; }
+    .primary { background: #2563eb; color: white; }
+    .success { background: #10b981; color: white; }
+    .note { border: 1px solid #e2e8f0; padding: 12px; margin: 8px 0; border-radius: 4px; background: #f8fafc; }
+    pre { background: #0f172a; color: #e2e8f0; padding: 12px; border-radius: 4px; overflow: auto; font-size: 12px; }
+    .info-box { background: #eff6ff; border: 2px solid #3b82f6; border-radius: 8px; padding: 16px; margin: 16px 0; }
+  </style>
+  <script src="../lib/sql-wasm.js"></script>
+  <script src="../lib/trust-manager.js"></script>
+</head>
+<body>
+  <h1>Trust Demo</h1>
+  <p>Content-addressed files with integrity verification.</p>
+
+  <div class="info-box">
+    <h3>How it works</h3>
+    <p>The filename contains a hash of the content. When you save, the hash changes if content changes. Anyone can verify the file hasn't been tampered with.</p>
+    <p>Current file: <code id="current-filename">04-trust-demo.html</code></p>
+  </div>
+
+  <div>
+    <input id="title" placeholder="Note title" />
+    <textarea id="body" rows="3" placeholder="Note body"></textarea>
+    <button class="primary" id="add-note">Add Note</button>
+    <button class="success" id="commit-btn">Commit with Verification</button>
+  </div>
+
+  <div id="notes"></div>
+  <pre id="log"></pre>
+
+  <script id="embedded-db" type="application/x-sqlite3">
+U1FMaXRlIGZvcm1hdCAzABAAAQEMQCAgAAAAAgAAAAIAAAAAAAAAAAAAAAEAAAAEAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAC5nug0AAAABD4kAD4kAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABgBBQAbFy1XZWxjb21lVGhpcyBpcyB5b3VyIGZpcnN0IG5vdGUyMDI2LTAxLTEzVDAwOjAwOjAwWg==
+  </script>
+
+  <script>
+    const logEl = document.getElementById('log');
+    const notesEl = document.getElementById('notes');
+    const titleEl = document.getElementById('title');
+    const bodyEl = document.getElementById('body');
+
+    let db, sqlModule, hasUnsavedChanges = false;
+    let trustManager;
+
+    function base64ToUint8Array(base64) {
+      const binaryString = atob(base64.trim());
+      const len = binaryString.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i++) bytes[i] = binaryString.charCodeAt(i);
+      return bytes;
+    }
+
+    function uint8ArrayToBase64(bytes) {
+      let binary = '';
+      for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+      return btoa(binary);
+    }
+
+    async function init() {
+      try {
+        log('Initializing...');
+        
+        trustManager = new TrustManager({
+          autoVerify: true,
+          showBadge: true,
+          badgePosition: 'top-right',
+          onVerificationComplete: (result) => {
+            log(`Verification: ${result.status}`);
+            if (result.status === 'VERIFIED') {
+              log(`  Hash: ${result.hash}`);
+            }
+            updateFilenameDisplay();
+          }
+        });
+
+        sqlModule = await initSqlJs({ locateFile: file => `../lib/${file}` });
+
+        const dbDataBase64 = document.getElementById('embedded-db').textContent.trim();
+        
+        if (dbDataBase64 && dbDataBase64.length > 0) {
+          try {
+            const dbBytes = base64ToUint8Array(dbDataBase64);
+            db = new sqlModule.Database(dbBytes);
+            db.exec('SELECT name FROM sqlite_master WHERE type="table"');
+            log('Database loaded');
+          } catch (error) {
+            db = new sqlModule.Database();
+            createSchema();
+          }
+        } else {
+          db = new sqlModule.Database();
+          createSchema();
+        }
+
+        renderNotes();
+        log('Ready');
+      } catch (error) {
+        log('Error: ' + error.message);
+      }
+    }
+
+    function createSchema() {
+      db.run('CREATE TABLE IF NOT EXISTS notes (id INTEGER PRIMARY KEY, title TEXT, body TEXT, created_at TEXT)');
+      log('Database created');
+    }
+
+    function updateFilenameDisplay() {
+      const filenameDisplay = document.getElementById('current-filename');
+      const filename = trustManager.getFilename();
+      filenameDisplay.textContent = filename;
+    }
+
+    function renderNotes() {
+      const res = db.exec('SELECT id, title, body, created_at FROM notes ORDER BY id DESC');
+      notesEl.innerHTML = '';
+      if (!res.length) {
+        notesEl.innerHTML = '<p>No notes yet.</p>';
+        return;
+      }
+      const rows = res[0].values;
+      for (const [id, title, body, created_at] of rows) {
+        const div = document.createElement('div');
+        div.className = 'note';
+        div.innerHTML = `<strong>${escapeHtml(title || 'Untitled')}</strong><br>${escapeHtml(body || '')}<br><small>${new Date(created_at).toLocaleString()}</small>`;
+        notesEl.appendChild(div);
+      }
+    }
+
+    function escapeHtml(str) {
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function addNote() {
+      try {
+        const title = titleEl.value.trim() || 'Untitled';
+        const body = bodyEl.value.trim();
+        const createdAt = new Date().toISOString();
+        
+        db.run('INSERT INTO notes (title, body, created_at) VALUES (?, ?, ?)', [title, body, createdAt]);
+        
+        titleEl.value = '';
+        bodyEl.value = '';
+        renderNotes();
+        hasUnsavedChanges = true;
+        
+        log(`Note added: ${title}`);
+      } catch (error) {
+        log('Error: ' + error.message);
+      }
+    }
+
+    async function commitChanges() {
+      if (!hasUnsavedChanges) {
+        log('No changes to commit');
+        return;
+      }
+
+      try {
+        log('Creating commit...');
+        
+        const exported = db.export();
+        const base64Db = uint8ArrayToBase64(exported);
+        
+        let htmlContent = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+        htmlContent = htmlContent.replace(
+          /(<script id="embedded-db"[^>]*>)([\s\S]*?)(<\/script>)/,
+          `$1\n${base64Db}\n$3`
+        );
+        
+        const basename = '04-trust-demo';
+        const filename = await trustManager.generateCommitFilename(basename, htmlContent);
+        
+        log(`Generated filename: ${filename}`);
+        
+        await saveFile(htmlContent, filename);
+        
+        hasUnsavedChanges = false;
+        log(`Saved: ${filename}`);
+        log('File is now content-addressed and verifiable');
+      } catch (error) {
+        log('Commit failed: ' + error.message);
+      }
+    }
+
+    async function saveFile(htmlContent, filename) {
+      const blob = new Blob([htmlContent], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function log(msg) {
+      logEl.textContent += `${msg}\n`;
+    }
+
+    document.getElementById('add-note').addEventListener('click', addNote);
+    document.getElementById('commit-btn').addEventListener('click', commitChanges);
+
+    init();
+  </script>
+</body>
+</html>

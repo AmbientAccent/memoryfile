@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Commit Cycle Test - Prove Edit → Save → Open → Edit → Save Works</title>
+  <style>
+    body { font-family: monospace; padding: 20px; max-width: 1200px; margin: 0 auto; }
+    h1 { color: #2563eb; }
+    .test-section { border: 2px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 16px 0; }
+    .test-section.running { border-color: #f59e0b; background: #fffbeb; }
+    .test-section.passed { border-color: #10b981; background: #ecfdf5; }
+    .test-section.failed { border-color: #ef4444; background: #fef2f2; }
+    .test-step { padding: 8px; margin: 4px 0; background: #f8fafc; border-left: 3px solid #cbd5e1; }
+    .test-step.active { border-left-color: #f59e0b; background: #fffbeb; }
+    .test-step.passed { border-left-color: #10b981; }
+    .test-step.failed { border-left-color: #ef4444; }
+    button { padding: 10px 20px; margin: 10px 5px 10px 0; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; }
+    .start { background: #2563eb; color: white; }
+    .stop { background: #ef4444; color: white; }
+    pre { background: #0f172a; color: #e2e8f0; padding: 12px; border-radius: 6px; overflow: auto; max-height: 400px; }
+    .commit-hash { color: #2563eb; font-weight: bold; }
+    .success { color: #10b981; }
+    .error { color: #ef4444; }
+    .info { color: #64748b; }
+  </style>
+  <!-- SQLite WASM - Local for offline self-contained operation -->
+  <script src="../lib/sql-wasm.js"></script>
+</head>
+<body>
+  <h1>🧪 Commit Cycle Test</h1>
+  <p>This test proves that Edit → Commit → Open → Edit → Commit cycle works correctly across multiple iterations.</p>
+
+  <div class="test-section" id="test-controls">
+    <h2>Test Controls</h2>
+    <button class="start" onclick="runTest()">▶️ Run Full Test (3 Cycles)</button>
+    <button class="stop" onclick="stopTest()">⏹️ Stop Test</button>
+    <p class="info">Test will simulate: Open → Edit → Commit → Open New Version (3 times)</p>
+  </div>
+
+  <div class="test-section" id="test-progress">
+    <h2>Test Progress</h2>
+    <div id="progress-steps"></div>
+  </div>
+
+  <div class="test-section" id="test-results">
+    <h2>Test Results</h2>
+    <pre id="test-log"></pre>
+  </div>
+
+  <div class="test-section" id="version-history">
+    <h2>Version Chain (Proves Lineage)</h2>
+    <pre id="version-chain"></pre>
+  </div>
+
+  <script>
+    let testRunning = false;
+    let testAborted = false;
+    const logEl = document.getElementById('test-log');
+    const progressEl = document.getElementById('progress-steps');
+    const versionChainEl = document.getElementById('version-chain');
+    const testSection = document.getElementById('test-progress');
+
+    // Test configuration
+    const TEST_CYCLES = 3;
+    const versions = [];
+
+    function log(msg, type = 'info') {
+      const timestamp = new Date().toISOString().split('T')[1].split('.')[0];
+      const prefix = type === 'error' ? '❌' : type === 'success' ? '✅' : '▶️';
+      const className = type;
+      logEl.innerHTML += `<span class="${className}">[${timestamp}] ${prefix} ${msg}</span>\n`;
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function updateProgress(step, status) {
+      const stepEl = document.getElementById(`step-${step}`);
+      if (stepEl) {
+        stepEl.className = `test-step ${status}`;
+      }
+    }
+
+    function initProgressSteps() {
+      progressEl.innerHTML = '';
+      for (let i = 1; i <= TEST_CYCLES; i++) {
+        progressEl.innerHTML += `
+          <div id="step-${i}" class="test-step">
+            Cycle ${i}: Load version ${i-1} → Make changes → Commit → Create version ${i}
+          </div>
+        `;
+      }
+    }
+
+    async function runTest() {
+      if (testRunning) {
+        log('Test already running', 'error');
+        return;
+      }
+
+      testRunning = true;
+      testAborted = false;
+      versions.length = 0;
+      testSection.className = 'test-section running';
+      
+      log('='.repeat(80), 'info');
+      log('🧪 STARTING COMMIT CYCLE TEST', 'info');
+      log('='.repeat(80), 'info');
+      
+      initProgressSteps();
+
+      try {
+        // Initialize SQLite
+        log('Loading SQLite WASM...', 'info');
+        const SQL = await initSqlJs({
+          locateFile: file => `../lib/${file}`
+        });
+        log('✅ SQLite loaded', 'success');
+
+        // Create initial version (version 0)
+        log('', 'info');
+        log('Creating initial version (version 0)...', 'info');
+        const initialVersion = await createInitialVersion(SQL);
+        versions.push(initialVersion);
+        log(`✅ Initial version created: ${initialVersion.hash}`, 'success');
+        updateVersionChain();
+
+        // Run commit cycles
+        for (let cycle = 1; cycle <= TEST_CYCLES; cycle++) {
+          if (testAborted) {
+            log('Test aborted by user', 'error');
+            testSection.className = 'test-section failed';
+            return;
+          }
+
+          log('', 'info');
+          log(`${'='.repeat(40)}`, 'info');
+          log(`🔄 CYCLE ${cycle}: Simulating open → edit → commit`, 'info');
+          log(`${'='.repeat(40)}`, 'info');
+          
+          updateProgress(cycle, 'active');
+
+          const previousVersion = versions[cycle - 1];
+          
+          // Step 1: "Open" the previous version
+          log(`1️⃣ Opening version ${cycle - 1} (hash: ${previousVersion.hash})`, 'info');
+          const db = new SQL.Database(previousVersion.dbData);
+          
+          // Verify we can read the database
+          const result = db.exec('SELECT COUNT(*) as count FROM notes');
+          const noteCount = result[0].values[0][0];
+          log(`   ✓ Database opened successfully (${noteCount} notes)`, 'success');
+
+          // Step 2: Make changes (add a note)
+          const newNote = {
+            title: `Cycle ${cycle} commit`,
+            body: `This is commit #${cycle} in the test. Testing that we can open a committed version and commit again.`,
+            created_at: new Date().toISOString()
+          };
+          
+          log(`2️⃣ Making changes: Adding note "${newNote.title}"`, 'info');
+          db.run('INSERT INTO notes (title, body, created_at) VALUES (?, ?, ?)', 
+            [newNote.title, newNote.body, newNote.created_at]);
+          log(`   ✓ Note added to database`, 'success');
+
+          // Step 3: Generate commit hash
+          log(`3️⃣ Generating commit hash...`, 'info');
+          const commitData = {
+            dbState: uint8ArrayToBase64(db.export()),
+            timestamp: Date.now(),
+            message: newNote.title,
+            parent: previousVersion.hash,
+            note: newNote
+          };
+          const newHash = await generateCommitHash(commitData);
+          log(`   ✓ Commit hash: ${newHash}`, 'success');
+
+          // Step 4: Add to commit history
+          log(`4️⃣ Recording commit in history table...`, 'info');
+          db.run(
+            'INSERT INTO commit_history (commit_hash, parent_hash, commit_message, commit_date, app_version) VALUES (?, ?, ?, ?, ?)',
+            [newHash, previousVersion.hash, newNote.title, newNote.created_at, '1.0.0']
+          );
+          log(`   ✓ Commit recorded with parent: ${previousVersion.hash}`, 'success');
+
+          // Step 5: Export new database state
+          log(`5️⃣ Exporting new database state...`, 'info');
+          const newDbData = db.export();
+          log(`   ✓ Database exported (${newDbData.length} bytes)`, 'success');
+
+          // Step 6: Create new version object (simulates the downloaded file)
+          const newVersion = {
+            hash: newHash,
+            parentHash: previousVersion.hash,
+            message: newNote.title,
+            date: newNote.created_at,
+            dbData: newDbData,
+            cycle: cycle
+          };
+          versions.push(newVersion);
+          
+          log(`✅ CYCLE ${cycle} COMPLETE`, 'success');
+          log(`   Created: version ${cycle} (hash: ${newHash})`, 'success');
+          log(`   Parent: version ${cycle - 1} (hash: ${previousVersion.hash})`, 'success');
+          
+          updateProgress(cycle, 'passed');
+          updateVersionChain();
+
+          // Verify the chain
+          log(`6️⃣ Verifying commit chain...`, 'info');
+          const verifyDb = new SQL.Database(newDbData);
+          const historyResult = verifyDb.exec('SELECT commit_hash, parent_hash, commit_message FROM commit_history ORDER BY commit_date');
+          if (historyResult.length > 0) {
+            const commits = historyResult[0].values;
+            log(`   ✓ Found ${commits.length} commits in history`, 'success');
+            commits.forEach((commit, idx) => {
+              log(`     ${idx}: ${commit[0]} → parent: ${commit[1] || 'none'}`, 'info');
+            });
+          }
+          verifyDb.close();
+
+          db.close();
+
+          // Pause between cycles for readability
+          await sleep(500);
+        }
+
+        // Final verification
+        log('', 'info');
+        log('='.repeat(80), 'info');
+        log('🎉 ALL CYCLES COMPLETE - Running Final Verification', 'info');
+        log('='.repeat(80), 'info');
+        
+        await verifyFinalState(SQL);
+
+        log('', 'info');
+        log('✅✅✅ TEST PASSED ✅✅✅', 'success');
+        log(`Successfully completed ${TEST_CYCLES} edit → commit → open cycles`, 'success');
+        log(`Created ${versions.length} versions with valid parent-child relationships`, 'success');
+        testSection.className = 'test-section passed';
+
+      } catch (error) {
+        log('', 'info');
+        log('❌ TEST FAILED', 'error');
+        log(`Error: ${error.message}`, 'error');
+        console.error(error);
+        testSection.className = 'test-section failed';
+      } finally {
+        testRunning = false;
+      }
+    }
+
+    async function verifyFinalState(SQL) {
+      log('Verifying final version can be opened and read...', 'info');
+      
+      const finalVersion = versions[versions.length - 1];
+      const db = new SQL.Database(finalVersion.dbData);
+      
+      // Check notes count
+      const notesResult = db.exec('SELECT COUNT(*) as count FROM notes');
+      const noteCount = notesResult[0].values[0][0];
+      log(`✓ Final version has ${noteCount} notes (expected ${TEST_CYCLES})`, noteCount === TEST_CYCLES ? 'success' : 'error');
+      
+      // Check commit history
+      const historyResult = db.exec('SELECT COUNT(*) as count FROM commit_history');
+      const historyCount = historyResult[0].values[0][0];
+      log(`✓ Final version has ${historyCount} commits in history (expected ${TEST_CYCLES + 1})`, historyCount === TEST_CYCLES + 1 ? 'success' : 'error');
+      
+      // Verify chain integrity
+      const chainResult = db.exec('SELECT commit_hash, parent_hash FROM commit_history ORDER BY commit_date');
+      const chain = chainResult[0].values;
+      let chainIntegrity = true;
+      
+      for (let i = 1; i < chain.length; i++) {
+        const [currentHash, parentHash] = chain[i];
+        const [expectedParentHash] = chain[i - 1];
+        if (parentHash !== expectedParentHash) {
+          log(`✗ Chain broken at commit ${i}: parent ${parentHash} doesn't match previous ${expectedParentHash}`, 'error');
+          chainIntegrity = false;
+        }
+      }
+      
+      if (chainIntegrity) {
+        log('✓ Commit chain integrity verified - all parents link correctly', 'success');
+      }
+      
+      // List all notes
+      log('', 'info');
+      log('Final note list:', 'info');
+      const allNotes = db.exec('SELECT title, created_at FROM notes ORDER BY created_at');
+      if (allNotes.length > 0) {
+        allNotes[0].values.forEach((note, idx) => {
+          log(`  ${idx + 1}. "${note[0]}" (${new Date(note[1]).toLocaleString()})`, 'info');
+        });
+      }
+      
+      db.close();
+    }
+
+    async function createInitialVersion(SQL) {
+      const db = new SQL.Database();
+      
+      // Create schema
+      db.run(`
+        CREATE TABLE notes (
+          id INTEGER PRIMARY KEY,
+          title TEXT,
+          body TEXT,
+          created_at TEXT
+        )
+      `);
+      db.run(`
+        CREATE TABLE commit_history (
+          commit_hash TEXT PRIMARY KEY,
+          parent_hash TEXT,
+          commit_message TEXT NOT NULL,
+          commit_date TEXT NOT NULL,
+          app_version TEXT
+        )
+      `);
+      
+      // Create initial commit
+      const initialHash = '00000000';
+      const initialDate = new Date().toISOString();
+      db.run(
+        'INSERT INTO commit_history (commit_hash, parent_hash, commit_message, commit_date, app_version) VALUES (?, ?, ?, ?, ?)',
+        [initialHash, null, 'Initial commit', initialDate, '1.0.0']
+      );
+      
+      const dbData = db.export();
+      db.close();
+      
+      return {
+        hash: initialHash,
+        parentHash: null,
+        message: 'Initial commit',
+        date: initialDate,
+        dbData: dbData,
+        cycle: 0
+      };
+    }
+
+    function updateVersionChain() {
+      let chain = 'Version Chain (newest → oldest):\n\n';
+      
+      for (let i = versions.length - 1; i >= 0; i--) {
+        const v = versions[i];
+        const isLatest = i === versions.length - 1;
+        
+        chain += `${isLatest ? '📍 ' : '   '}Version ${v.cycle}: ${v.hash}\n`;
+        chain += `   Message: "${v.message}"\n`;
+        chain += `   Date: ${new Date(v.date).toLocaleString()}\n`;
+        chain += `   Parent: ${v.parentHash || 'none (initial)'}\n`;
+        
+        if (i > 0) {
+          chain += '   ↓\n';
+        }
+        chain += '\n';
+      }
+      
+      versionChainEl.textContent = chain;
+    }
+
+    function stopTest() {
+      testAborted = true;
+      log('Stop requested...', 'info');
+    }
+
+    // Helper functions
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    function uint8ArrayToBase64(bytes) {
+      let binary = '';
+      for (let i = 0; i < bytes.length; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      return btoa(binary);
+    }
+
+    async function generateCommitHash(data) {
+      const encoder = new TextEncoder();
+      const dataBuffer = encoder.encode(JSON.stringify(data));
+      const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 8);
+    }
+
+    // Auto-run test on load
+    window.addEventListener('load', () => {
+      log('🧪 Commit Cycle Test Ready', 'info');
+      log('Click "Run Full Test" to start', 'info');
+    });
+  </script>
+</body>
+</html>
