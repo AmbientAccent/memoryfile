@@ -69,3 +69,4 @@ coverage/
 *.bak
 *.backup
 *~
+.vercel

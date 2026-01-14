@@ -360,6 +360,7 @@
   <script src="lib/unit-tests.js"></script>
   <script src="lib/integration-tests.js"></script>
   <script src="lib/performance-tests.js"></script>
+  <script src="lib/commit-cycle-tests.js"></script>
 
   <!-- Main Test Runner -->
   <script>
@@ -424,6 +425,12 @@
       if (typeof registerPerformanceTests === 'function') {
         await registerPerformanceTests(testRunner);
         console.log('✅ Performance tests registered');
+      }
+
+      // Register commit cycle tests
+      if (typeof registerCommitCycleTests === 'function') {
+        await registerCommitCycleTests(testRunner);
+        console.log('✅ Commit cycle tests registered');
       }
 
       console.log(`📊 Total tests registered: ${testRunner.tests.length}`);
