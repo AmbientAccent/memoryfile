@@ -366,6 +366,9 @@
     let testRunner;
     let currentResults = null;
 
+    // Configure WASM path for subdirectory location
+    window.MEMORYFILE_WASM_PATH = '../lib/';
+
     // Initialize on page load
     document.addEventListener('DOMContentLoaded', async () => {
       // Check browser support
