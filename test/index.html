@@ -12,289 +12,338 @@
       box-sizing: border-box;
     }
 
+    html, body {
+      height: 100%;
+    }
+
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-        'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      min-height: 100vh;
-      padding: 2rem;
+      font-family: -apple-system, system-ui, sans-serif;
+      line-height: 1.5;
+      background: #fff;
+      color: #000;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .status-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: #f8f8f8;
+      border-bottom: 1px solid #eee;
+      padding: 12px 24px;
+      font-size: 13px;
+      color: #666;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 10;
+    }
+
+    .status-bar.running {
+      background: #ff9900;
+      border-bottom-color: #ff9900;
+      color: #fff;
+      font-weight: 500;
+    }
+
+    .status-bar.success {
+      background: #22863a;
+      border-bottom-color: #22863a;
+      color: #fff;
+    }
+
+    .status-bar.failure {
+      background: #cb2431;
+      border-bottom-color: #cb2431;
+      color: #fff;
     }
 
     .container {
-      max-width: 1200px;
+      flex: 1;
+      max-width: 900px;
       margin: 0 auto;
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-      overflow: hidden;
+      padding: 60px 24px 24px;
+      width: 100%;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
     }
 
-    .header {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      padding: 2rem;
-      text-align: center;
+    h1 {
+      font-size: 32px;
+      font-weight: 600;
+      letter-spacing: -0.5px;
+      margin-bottom: 8px;
     }
 
-    .header h1 {
-      font-size: 2rem;
-      margin-bottom: 0.5rem;
+    .subtitle {
+      color: #666;
+      margin-bottom: 32px;
     }
 
-    .header p {
-      opacity: 0.9;
-      font-size: 1rem;
+    .browser-info {
+      padding: 12px 16px;
+      background: #f8f8f8;
+      border: 1px solid #eee;
+      border-radius: 6px;
+      margin-bottom: 24px;
+      font-size: 13px;
+    }
+
+    .browser-info h3 {
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #666;
+    }
+
+    .browser-info code {
+      font-family: 'SF Mono', Monaco, monospace;
+      font-size: 12px;
     }
 
     .controls {
-      padding: 1.5rem;
-      background: #f8f9fa;
-      border-bottom: 1px solid #dee2e6;
       display: flex;
-      gap: 1rem;
+      gap: 8px;
       flex-wrap: wrap;
-      align-items: center;
+      margin-bottom: 24px;
     }
 
-    .controls button {
-      padding: 0.75rem 1.5rem;
-      border: none;
+    button {
+      font-family: inherit;
+      font-size: 14px;
+      padding: 10px 16px;
+      border: 1px solid #ddd;
       border-radius: 6px;
-      font-size: 1rem;
-      font-weight: 600;
       cursor: pointer;
-      transition: all 0.2s;
+      background: #fff;
+      color: #000;
+      transition: all 0.15s;
     }
 
-    .controls button:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    button:hover {
+      border-color: #000;
     }
 
-    .btn-primary {
-      background: #667eea;
-      color: white;
+    button.primary {
+      background: #000;
+      color: #fff;
+      border-color: #000;
     }
 
-    .btn-primary:hover {
-      background: #5568d3;
+    button.primary:hover {
+      opacity: 0.8;
     }
 
-    .btn-secondary {
-      background: #6c757d;
-      color: white;
+    button.danger {
+      color: #cb2431;
+      border-color: #cb2431;
     }
 
-    .btn-secondary:hover {
-      background: #5a6268;
+    button.danger:hover {
+      background: #cb2431;
+      color: #fff;
     }
 
-    .btn-success {
-      background: #28a745;
-      color: white;
+    button:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
     }
 
-    .btn-success:hover {
-      background: #218838;
-    }
-
-    .btn-danger {
-      background: #dc3545;
-      color: white;
-    }
-
-    .btn-danger:hover {
-      background: #c82333;
-    }
-
-    .controls select {
-      padding: 0.75rem;
-      border: 1px solid #ced4da;
+    select {
+      font-family: inherit;
+      font-size: 14px;
+      padding: 10px 12px;
+      border: 1px solid #ddd;
       border-radius: 6px;
-      font-size: 1rem;
-      background: white;
+      background: #fff;
       cursor: pointer;
+    }
+
+    select:hover {
+      border-color: #000;
     }
 
     .stats {
-      padding: 1.5rem;
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-      gap: 1rem;
-      background: #f8f9fa;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 12px;
+      margin-bottom: 24px;
+      padding: 16px;
+      background: #f8f8f8;
+      border-radius: 6px;
     }
 
     .stat-card {
-      background: white;
-      padding: 1rem;
-      border-radius: 6px;
-      border-left: 4px solid #667eea;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    }
-
-    .stat-card.passed {
-      border-left-color: #28a745;
-    }
-
-    .stat-card.failed {
-      border-left-color: #dc3545;
-    }
-
-    .stat-card.skipped {
-      border-left-color: #ffc107;
+      text-align: center;
     }
 
     .stat-label {
-      font-size: 0.875rem;
-      color: #6c757d;
-      margin-bottom: 0.25rem;
+      font-size: 12px;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
     }
 
     .stat-value {
-      font-size: 1.5rem;
-      font-weight: 700;
-      color: #212529;
+      font-size: 24px;
+      font-weight: 600;
+      font-family: 'SF Mono', Monaco, monospace;
     }
 
-    .output {
-      padding: 1.5rem;
-      max-height: 600px;
-      overflow-y: auto;
-      background: #212529;
-      color: #f8f9fa;
-      font-family: 'Courier New', Courier, monospace;
-      font-size: 0.875rem;
-      line-height: 1.5;
-    }
-
-    .test-log {
-      padding: 0.25rem 0;
-      white-space: pre-wrap;
-      word-break: break-word;
-    }
-
-    .test-log-pass {
-      color: #28a745;
-    }
-
-    .test-log-fail {
-      color: #dc3545;
-    }
-
-    .test-log-skip {
-      color: #ffc107;
-    }
-
-    .test-log-error {
-      color: #ff6b6b;
-      margin-left: 2rem;
-      font-size: 0.8rem;
-    }
-
-    .test-log-summary {
-      color: #4fc3f7;
-      font-weight: bold;
-    }
-
-    .loading {
-      text-align: center;
-      padding: 2rem;
-      color: #6c757d;
-    }
-
-    .spinner {
-      display: inline-block;
-      width: 40px;
-      height: 40px;
-      border: 4px solid #f3f3f3;
-      border-top: 4px solid #667eea;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin-bottom: 1rem;
-    }
-
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
+    .stat-value.passed { color: #22863a; }
+    .stat-value.failed { color: #cb2431; }
+    .stat-value.skipped { color: #b08800; }
 
     .progress-bar {
-      height: 4px;
-      background: #e9ecef;
-      position: relative;
+      height: 3px;
+      background: #eee;
+      border-radius: 2px;
+      margin-bottom: 24px;
       overflow: hidden;
     }
 
     .progress-bar-fill {
       height: 100%;
-      background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+      background: #000;
       width: 0%;
       transition: width 0.3s ease;
     }
 
-    .browser-info {
-      padding: 1rem 1.5rem;
-      background: #fff3cd;
-      border-left: 4px solid #ffc107;
-      margin: 1.5rem;
-      border-radius: 4px;
+    .output {
+      flex: 1;
+      min-height: 300px;
+      padding: 16px;
+      background: #1a1a1a;
+      color: #e6e6e6;
+      font-family: 'SF Mono', Monaco, monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      border-radius: 6px;
+      overflow-y: auto;
     }
 
-    .browser-info h3 {
-      color: #856404;
-      margin-bottom: 0.5rem;
-      font-size: 1rem;
+    .test-log {
+      padding: 2px 0;
+      white-space: pre-wrap;
+      word-break: break-word;
     }
 
-    .browser-info code {
-      background: rgba(0, 0, 0, 0.05);
-      padding: 0.2rem 0.4rem;
-      border-radius: 3px;
-      font-size: 0.875rem;
+    .test-log-pass { color: #85e89d; }
+    .test-log-fail { color: #f97583; }
+    .test-log-skip { color: #ffea7f; }
+    .test-log-error {
+      color: #f97583;
+      margin-left: 24px;
+      font-size: 12px;
+      opacity: 0.8;
     }
-
-    .badge {
-      display: inline-block;
-      padding: 0.25rem 0.5rem;
-      border-radius: 3px;
-      font-size: 0.75rem;
+    .test-log-summary {
+      color: #79b8ff;
       font-weight: 600;
-      margin-left: 0.5rem;
+    }
+    .test-log-info { color: #e6e6e6; }
+
+    .loading {
+      color: #666;
+      padding: 24px;
+      text-align: center;
     }
 
-    .badge-success {
-      background: #d4edda;
-      color: #155724;
+    .spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 2px solid #333;
+      border-top-color: #666;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-right: 8px;
+      vertical-align: middle;
     }
 
-    .badge-danger {
-      background: #f8d7da;
-      color: #721c24;
+    @keyframes spin {
+      to { transform: rotate(360deg); }
     }
 
-    .hidden {
-      display: none;
+    footer {
+      margin-top: auto;
+      padding: 24px 0;
+      border-top: 1px solid #eee;
+      color: #999;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    footer a {
+      color: #999;
+      text-decoration: none;
+    }
+
+    footer a:hover {
+      color: #000;
+      text-decoration: underline;
+    }
+
+    kbd {
+      font-family: 'SF Mono', Monaco, monospace;
+      font-size: 12px;
+      padding: 2px 6px;
+      background: #f4f4f4;
+      border: 1px solid #ddd;
+      border-radius: 3px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      body { background: #000; color: #fff; }
+      .status-bar { background: #111; border-bottom-color: #222; color: #666; }
+      .status-bar.running { background: #ff9900; border-bottom-color: #ff9900; color: #000; }
+      .status-bar.success { background: #22863a; }
+      .status-bar.failure { background: #cb2431; }
+      .browser-info { background: #111; border-color: #222; }
+      .browser-info h3 { color: #888; }
+      button { background: #111; color: #fff; border-color: #333; }
+      button:hover { border-color: #666; }
+      button.primary { background: #fff; color: #000; border-color: #fff; }
+      button.danger { color: #f97583; border-color: #f97583; }
+      button.danger:hover { background: #cb2431; color: #fff; }
+      select { background: #111; color: #fff; border-color: #333; }
+      select:hover { border-color: #666; }
+      .stats { background: #111; }
+      .stat-label { color: #888; }
+      .progress-bar { background: #222; }
+      .progress-bar-fill { background: #fff; }
+      .output { background: #0d0d0d; }
+      footer { border-top-color: #222; }
+      footer a:hover { color: #fff; }
+      kbd { background: #222; border-color: #333; }
     }
   </style>
 </head>
 <body>
+  <div class="status-bar" id="statusBar">
+    <span id="statusText">Ready</span>
+    <span id="statusInfo"><kbd>Ctrl</kbd>+<kbd>Enter</kbd> to run</span>
+  </div>
+
   <div class="container">
-    <div class="header">
-      <h1>Test Suite</h1>
-      <p>Internal testing for self-persistent web applications</p>
-    </div>
+    <h1>Test Runner</h1>
+    <p class="subtitle">MemoryFile test suite</p>
 
     <div class="browser-info" id="browserInfo">
       <h3>Browser Support</h3>
-      <div id="browserSupportDetails">Loading browser capabilities...</div>
+      <div id="browserSupportDetails">Checking capabilities...</div>
     </div>
 
     <div class="controls">
-      <button id="runAllBtn" class="btn-primary">Run All Tests</button>
-      <button id="runUnitBtn" class="btn-secondary">Unit Tests</button>
-      <button id="runIntegrationBtn" class="btn-secondary">Integration Tests</button>
-      <button id="runPerformanceBtn" class="btn-secondary">Performance Tests</button>
-      <button id="clearBtn" class="btn-danger">Clear Output</button>
+      <button id="runAllBtn" class="primary">Run All Tests</button>
+      <button id="runUnitBtn">Unit</button>
+      <button id="runIntegrationBtn">Integration</button>
+      <button id="runPerformanceBtn">Performance</button>
+      <button id="clearBtn" class="danger">Clear</button>
       <select id="testFilter">
         <option value="all">All Tests</option>
         <option value="unit">Unit Tests Only</option>
@@ -309,37 +358,40 @@
 
     <div class="stats" id="stats">
       <div class="stat-card">
-        <div class="stat-label">Total Tests</div>
+        <div class="stat-label">Total</div>
         <div class="stat-value" id="totalTests">0</div>
       </div>
-      <div class="stat-card passed">
+      <div class="stat-card">
         <div class="stat-label">Passed</div>
-        <div class="stat-value" id="passedTests">0</div>
+        <div class="stat-value passed" id="passedTests">0</div>
       </div>
-      <div class="stat-card failed">
+      <div class="stat-card">
         <div class="stat-label">Failed</div>
-        <div class="stat-value" id="failedTests">0</div>
+        <div class="stat-value failed" id="failedTests">0</div>
       </div>
-      <div class="stat-card skipped">
+      <div class="stat-card">
         <div class="stat-label">Skipped</div>
-        <div class="stat-value" id="skippedTests">0</div>
+        <div class="stat-value skipped" id="skippedTests">0</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">Duration</div>
         <div class="stat-value" id="duration">0ms</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Success Rate</div>
+        <div class="stat-label">Success</div>
         <div class="stat-value" id="successRate">0%</div>
       </div>
     </div>
 
     <div class="output" id="output">
-      <div class="loading">
-        <div class="spinner"></div>
-        <div>Ready to run tests. Click "Run All Tests" to begin.</div>
-      </div>
+      <div class="loading">Ready to run tests. Click "Run All Tests" to begin.</div>
     </div>
+
+    <footer>
+      <a href="../">Home</a> ·
+      <a href="../examples/">Examples</a> ·
+      <a href="https://github.com/AmbientAccent/memoryfile">GitHub</a>
+    </footer>
   </div>
 
   <!-- Embedded Database Placeholder -->
@@ -362,79 +414,61 @@
 
   <!-- Main Test Runner -->
   <script>
-    // Global test runner instance
     let testRunner;
     let currentResults = null;
 
-    // Configure WASM path for subdirectory location
     window.MEMORYFILE_WASM_PATH = '../lib/';
 
-    // Initialize on page load
     document.addEventListener('DOMContentLoaded', async () => {
-      // Check browser support
       await checkBrowserSupport();
-
-      // Initialize test runner
       testRunner = new TestRunner();
 
-      // Make utilities available globally
       window.Assert = Assert;
       window.MockDatabase = MockDatabase;
       window.PerformanceTest = PerformanceTest;
       window.TestDataGenerator = TestDataGenerator;
 
-      // Register all tests
       await registerAllTests();
-
-      // Setup button handlers
       setupEventHandlers();
-
-      console.log('Test runner initialized. Ready to run tests.');
+      
+      // Auto-run tests if URL parameter is set (?autorun or ?autorun=integration)
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.has('autorun')) {
+        const type = urlParams.get('autorun') || 'all';
+        console.log(`Auto-running ${type} tests...`);
+        setTimeout(() => runTests(type), 500);
+      }
     });
 
     async function checkBrowserSupport() {
       const support = await HTMLSQLiteFusion.getBrowserSupport();
-      const browserInfo = document.getElementById('browserSupportDetails');
+      const el = document.getElementById('browserSupportDetails');
       
-      browserInfo.innerHTML = `
-        <div>
-          <strong>WebAssembly:</strong> ${support.webAssembly ? 'Yes' : 'No'}
-          <strong>File System Access API:</strong> ${support.fileSystemAccess ? 'Yes' : 'No'}
-          <strong>OPFS:</strong> ${support.opfs ? 'Yes' : 'No'}
-          <strong>IndexedDB:</strong> ${support.indexedDB ? 'Yes' : 'No'}
-        </div>
-        ${!support.fileSystemAccess ? '<div style="margin-top: 0.5rem; font-size: 0.875rem;">File System Access API not supported. Save will use download fallback.</div>' : ''}
-      `;
+      const items = [
+        ['WebAssembly', support.webAssembly],
+        ['File System Access', support.fileSystemAccess],
+        ['OPFS', support.opfs],
+        ['IndexedDB', support.indexedDB]
+      ];
+
+      el.innerHTML = items.map(([name, ok]) => 
+        `<code>${name}: ${ok ? 'yes' : 'no'}</code>`
+      ).join(' · ');
     }
 
     async function registerAllTests() {
-      console.log('Registering test suites...');
-      
-      // Register unit tests
       if (typeof registerUnitTests === 'function') {
         await registerUnitTests(testRunner);
-        console.log('Unit tests registered');
       }
-
-      // Register integration tests
       if (typeof registerIntegrationTests === 'function') {
         await registerIntegrationTests(testRunner);
-        console.log('Integration tests registered');
       }
-
-      // Register performance tests
       if (typeof registerPerformanceTests === 'function') {
         await registerPerformanceTests(testRunner);
-        console.log('Performance tests registered');
       }
-
-      // Register commit cycle tests
       if (typeof registerCommitCycleTests === 'function') {
         await registerCommitCycleTests(testRunner);
-        console.log('Commit cycle tests registered');
       }
-
-      console.log(`Total tests registered: ${testRunner.tests.length}`);
     }
 
     function setupEventHandlers() {
@@ -445,18 +479,21 @@
       document.getElementById('clearBtn').addEventListener('click', clearOutput);
     }
 
+    function setStatus(text, state = '') {
+      const bar = document.getElementById('statusBar');
+      const textEl = document.getElementById('statusText');
+      bar.className = 'status-bar' + (state ? ' ' + state : '');
+      textEl.textContent = text;
+    }
+
     async function runTests(type = 'all') {
-      // Clear previous output
       clearOutput();
+      setStatus('Running tests...', 'running');
 
-      // Show loading
       const output = document.getElementById('output');
-      output.innerHTML = '<div class="loading"><div class="spinner"></div><div>Running tests...</div></div>';
-
-      // Reset progress bar
+      output.innerHTML = '<div class="loading"><span class="spinner"></span>Running tests...</div>';
       document.getElementById('progressBar').style.width = '0%';
 
-      // Filter tests if needed
       let testsToRun = testRunner.tests;
       if (type !== 'all') {
         testsToRun = testRunner.tests.filter(t => {
@@ -465,28 +502,25 @@
           if (type === 'performance') return t.name.includes('Performance') || t.name.includes('benchmark') || t.name.includes('Scalability') || t.name.includes('Memory');
           return true;
         });
-        
-        // Temporarily replace the tests array
-        const originalTests = testRunner.tests;
         testRunner.tests = testsToRun;
       }
 
-      // Wait a bit for UI to update
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 50));
 
-      // Run tests
       try {
         currentResults = await testRunner.runAll(output);
-        
-        // Update stats
         updateStats(currentResults);
-        
-        // Update progress bar
         document.getElementById('progressBar').style.width = '100%';
         
+        if (currentResults.failed === 0) {
+          setStatus(`All ${currentResults.passed} tests passed`, 'success');
+        } else {
+          setStatus(`${currentResults.failed} of ${currentResults.total} tests failed`, 'failure');
+        }
       } catch (error) {
         console.error('Test runner error:', error);
         output.innerHTML += `<div class="test-log test-log-fail">Fatal error: ${error.message}</div>`;
+        setStatus('Error running tests', 'failure');
       }
     }
 
@@ -507,52 +541,25 @@
 
     function clearOutput() {
       const output = document.getElementById('output');
-      output.innerHTML = '<div class="loading"><div>Output cleared. Ready for next test run.</div></div>';
+      output.innerHTML = '<div class="loading">Output cleared. Ready for next test run.</div>';
       
-      // Reset stats
       document.getElementById('totalTests').textContent = '0';
       document.getElementById('passedTests').textContent = '0';
       document.getElementById('failedTests').textContent = '0';
       document.getElementById('skippedTests').textContent = '0';
       document.getElementById('duration').textContent = '0ms';
       document.getElementById('successRate').textContent = '0%';
-      
-      // Reset progress bar
       document.getElementById('progressBar').style.width = '0%';
+      setStatus('Ready');
     }
 
-    // Export test results
-    window.exportTestResults = function() {
-      if (!currentResults) {
-        alert('No test results to export. Run tests first.');
-        return;
-      }
-
-      const data = {
-        timestamp: new Date().toISOString(),
-        results: currentResults,
-        browserInfo: navigator.userAgent
-      };
-
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `test-results-${Date.now()}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-    };
-
-    // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
-      if (e.ctrlKey || e.metaKey) {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          runTests('all');
-        } else if (e.key === 'k') {
-          e.preventDefault();
-          clearOutput();
-        }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        runTests('all');
+      } else if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        clearOutput();
       }
     });
   </script>

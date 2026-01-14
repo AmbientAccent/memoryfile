@@ -6,28 +6,36 @@
   <title>Basic Demo</title>
   <style>
     body { font-family: system-ui, sans-serif; margin: 24px; max-width: 800px; }
-    input, textarea { width: 100%; padding: 8px; margin: 6px 0; border: 1px solid #ddd; border-radius: 4px; }
+    input, textarea { width: 100%; padding: 8px; margin: 6px 0; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
     button { padding: 8px 16px; margin: 8px 8px 8px 0; border: none; border-radius: 4px; cursor: pointer; }
     .primary { background: #2563eb; color: white; }
     .secondary { background: #e2e8f0; color: #0f172a; }
+    .tertiary { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
     .note { border: 1px solid #e2e8f0; padding: 12px; margin: 8px 0; border-radius: 4px; background: #f8fafc; }
     pre { background: #0f172a; color: #e2e8f0; padding: 12px; border-radius: 4px; overflow: auto; font-size: 12px; }
+    .status-bar { background: #f0fdf4; border: 1px solid #86efac; padding: 8px 12px; border-radius: 4px; margin: 12px 0; font-size: 14px; display: flex; justify-content: space-between; align-items: center; }
+    .status-bar.warning { background: #fef3c7; border-color: #fcd34d; }
+    .status-bar .badge { background: #22c55e; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px; }
+    .status-bar.warning .badge { background: #f59e0b; }
   </style>
-  <!-- Uses sql-wasm.js - loads sql-wasm.wasm separately (~50KB overhead)
-       Requires HTTP server: python3 -m http.server 3000
-       Benefit: Smaller files, WASM cached across multiple files
-       For no-server version, see 01-basic-demo-inline.html -->
   <script src="../lib/sql-wasm.js"></script>
+  <script src="../lib/html-sqlite-core.js"></script>
 </head>
 <body>
   <h1>Basic Demo</h1>
-  <p>Add notes, then save to persist changes to this HTML file.</p>
+  <p>Add notes, then save to persist changes.</p>
+
+  <div id="status-bar" class="status-bar">
+    <span id="status-text">Loading...</span>
+    <span id="status-badge" class="badge"></span>
+  </div>
 
   <div>
     <input id="title" placeholder="Title" />
     <textarea id="body" rows="3" placeholder="Body"></textarea>
     <button class="primary" id="add-note">Add Note</button>
-    <button class="secondary" id="save-file">Save File</button>
+    <button class="secondary" id="save-btn">Save</button>
+    <button class="tertiary" id="export-btn">Export HTML</button>
   </div>
 
   <div id="notes"></div>
@@ -42,65 +50,82 @@ U1FMaXRlIGZvcm1hdCAzABAAAQEMQCAgAAAAAgAAAAIAAAAAAAAAAAAAAAEAAAAEAAAAAAAAAAAAAAAB
     const notesEl = document.getElementById('notes');
     const titleEl = document.getElementById('title');
     const bodyEl = document.getElementById('body');
+    const statusBar = document.getElementById('status-bar');
+    const statusText = document.getElementById('status-text');
+    const statusBadge = document.getElementById('status-badge');
+    const saveBtn = document.getElementById('save-btn');
+    const exportBtn = document.getElementById('export-btn');
 
-    function base64ToUint8Array(base64) {
-      const binaryString = atob(base64.trim());
-      const len = binaryString.length;
-      const bytes = new Uint8Array(len);
-      for (let i = 0; i < len; i++) bytes[i] = binaryString.charCodeAt(i);
-      return bytes;
+    let memoryFile;
+
+    function updateStatus(text, isWarning = false, badge = '') {
+      statusText.textContent = text;
+      statusBadge.textContent = badge;
+      statusBar.className = isWarning ? 'status-bar warning' : 'status-bar';
     }
-
-    function uint8ArrayToBase64(bytes) {
-      let binary = '';
-      for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-      return btoa(binary);
-    }
-
-    let db, sqlModule;
 
     async function init() {
       try {
-        log('Loading SQLite...');
-        sqlModule = await initSqlJs({ locateFile: file => `../lib/${file}` });
-
-        const dbDataBase64 = document.getElementById('embedded-db').textContent.trim();
+        log('Loading MemoryFile...');
         
-        if (dbDataBase64 && dbDataBase64.length > 0) {
-          try {
-            const dbBytes = base64ToUint8Array(dbDataBase64);
-            db = new sqlModule.Database(dbBytes);
-            db.exec('SELECT name FROM sqlite_master WHERE type="table"');
-            log('Database loaded');
-          } catch (error) {
-            db = new sqlModule.Database();
-            db.run('CREATE TABLE notes (id INTEGER PRIMARY KEY, title TEXT, body TEXT, created_at TEXT)');
-            log('New database created');
-          }
+        // Create MemoryFile with encryption disabled for this demo
+        // persistToStorage: true means changes auto-save to IndexedDB
+        memoryFile = new MemoryFile({ 
+          encrypted: false,
+          persistToStorage: true 
+        });
+        
+        await memoryFile.initSQL({ locateFile: file => `../lib/${file}` });
+        await memoryFile.loadEmbeddedDatabase();
+        
+        // Check capabilities and set up UI
+        const caps = MemoryFile.getSaveCapabilities();
+        
+        if (memoryFile.wasLoadedFromStorage()) {
+          updateStatus('Restored from browser storage', false, 'Synced');
+          log('Loaded from browser storage (changes preserved)');
+        } else if (caps.saveInPlace) {
+          updateStatus('Ready - full save support', false, 'Full Support');
+          log('Database loaded');
         } else {
-          db = new sqlModule.Database();
-          db.run('CREATE TABLE notes (id INTEGER PRIMARY KEY, title TEXT, body TEXT, created_at TEXT)');
-          log('New database created');
+          updateStatus('Changes auto-save to browser storage', false, 'Auto-Save');
+          log('Database loaded (auto-save enabled)');
+        }
+        
+        // Update button labels based on capabilities
+        if (!caps.saveInPlace) {
+          saveBtn.textContent = 'Save';
+          exportBtn.textContent = caps.browser.isIOSAnyBrowser ? 'Share HTML' : 'Download HTML';
+        }
+
+        // Ensure schema exists
+        try {
+          memoryFile.exec('SELECT 1 FROM notes LIMIT 1');
+        } catch (e) {
+          memoryFile.run('CREATE TABLE notes (id INTEGER PRIMARY KEY, title TEXT, body TEXT, created_at TEXT)');
+          log('Schema created');
         }
 
         renderNotes();
       } catch (error) {
         log('Error: ' + error.message);
+        updateStatus('Error loading', true, 'Error');
       }
     }
 
     function renderNotes() {
-      const res = db.exec('SELECT id, title, body, created_at FROM notes ORDER BY id DESC');
+      const notes = memoryFile.exec('SELECT id, title, body, created_at FROM notes ORDER BY id DESC');
       notesEl.innerHTML = '';
-      if (!res.length) {
+      
+      if (!notes.length) {
         notesEl.innerHTML = '<p>No notes yet.</p>';
         return;
       }
-      const rows = res[0].values;
-      for (const [id, title, body, created_at] of rows) {
+      
+      for (const note of notes) {
         const div = document.createElement('div');
         div.className = 'note';
-        div.innerHTML = `<strong>${escapeHtml(title || '')}</strong><br>${escapeHtml(body || '')}<br><small>${created_at}</small>`;
+        div.innerHTML = `<strong>${escapeHtml(note.title || '')}</strong><br>${escapeHtml(note.body || '')}<br><small>${note.created_at}</small>`;
         notesEl.appendChild(div);
       }
     }
@@ -109,59 +134,74 @@ U1FMaXRlIGZvcm1hdCAzABAAAQEMQCAgAAAAAgAAAAIAAAAAAAAAAAAAAAEAAAAEAAAAAAAAAAAAAAAB
       return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
 
-    function addNote() {
+    async function addNote() {
       try {
         const title = titleEl.value.trim() || 'Untitled';
         const body = bodyEl.value.trim();
         const createdAt = new Date().toISOString();
-        db.run('INSERT INTO notes (title, body, created_at) VALUES (?, ?, ?)', [title, body, createdAt]);
+        
+        memoryFile.run('INSERT INTO notes (title, body, created_at) VALUES (?, ?, ?)', [title, body, createdAt]);
+        
+        // Auto-save to IndexedDB
+        await memoryFile.save();
+        
         titleEl.value = '';
         bodyEl.value = '';
         renderNotes();
-        log('Note added');
+        log('Note added and saved');
+        updateStatus('Saved', false, 'Synced');
       } catch (error) {
         log('Error: ' + error.message);
       }
     }
 
-    async function saveToFile() {
-      const exported = db.export();
-      const base64Db = uint8ArrayToBase64(exported);
-      let htmlContent = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
-      htmlContent = htmlContent.replace(
-        /(<script id="embedded-db"[^>]*>)([\s\S]*?)(<\/script>)/,
-        `$1\n${base64Db}\n$3`
-      );
-
+    async function saveToStorage() {
       try {
-        const handle = await window.showSaveFilePicker({
-          suggestedName: '01-basic-demo.html',
-          types: [{ description: 'HTML Files', accept: { 'text/html': ['.html'] } }]
-        });
-        const writable = await handle.createWritable();
-        await writable.write(htmlContent);
-        await writable.close();
-        log('Saved');
-      } catch (err) {
-        if (err.name !== 'AbortError') {
-          const blob = new Blob([htmlContent], { type: 'text/html' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = '01-basic-demo.html';
-          a.click();
-          URL.revokeObjectURL(url);
-          log('Downloaded');
+        const result = await memoryFile.save();
+        if (result.success) {
+          log('Saved to browser storage');
+          updateStatus('Saved', false, 'Synced');
         }
+      } catch (error) {
+        log('Save error: ' + error.message);
+      }
+    }
+
+    async function exportToFile() {
+      try {
+        const result = await memoryFile.saveToFile('01-basic-demo.html');
+        
+        if (result.cancelled) {
+          if (result.persistedToStorage) {
+            log('Export cancelled, but changes saved locally');
+          }
+          return;
+        }
+        
+        if (result.savedInPlace) {
+          log('Saved to file');
+          updateStatus('Saved to file', false, 'Saved');
+        } else if (result.method === 'share') {
+          log('Shared - save to Files app for portable copy');
+        } else if (result.method === 'storage') {
+          log('Saved locally. HTML downloaded for backup.');
+        } else {
+          log('Downloaded HTML copy');
+        }
+      } catch (error) {
+        log('Export error: ' + error.message);
       }
     }
 
     function log(msg) {
-      logEl.textContent += `${msg}\n`;
+      const time = new Date().toLocaleTimeString();
+      logEl.textContent += `[${time}] ${msg}\n`;
+      logEl.scrollTop = logEl.scrollHeight;
     }
 
     document.getElementById('add-note').addEventListener('click', addNote);
-    document.getElementById('save-file').addEventListener('click', saveToFile);
+    saveBtn.addEventListener('click', saveToStorage);
+    exportBtn.addEventListener('click', exportToFile);
 
     init();
   </script>
