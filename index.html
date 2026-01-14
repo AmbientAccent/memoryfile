@@ -428,14 +428,13 @@
           commitDate: now
         };
 
-        // Update DOM state BEFORE capturing HTML to avoid race condition
+        // Update DOM state BEFORE capturing HTML (so saved file opens clean)
         metadata = newMetadata;
         input.value = '';
         setModified(false);
         render();
         renderCommits();
         updateSize();
-        statusText.textContent = 'Ready';
 
         // Build HTML (now captures correct state)
         const dbBase64 = bytesToB64(db.export());
@@ -465,8 +464,10 @@
             await writable.close();
           } catch (err) {
             if (err.name === 'AbortError') {
+              // Restore input state on cancel
+              input.value = text;
+              setModified(true);
               statusText.textContent = 'Cancelled';
-              btnSave.disabled = false;
               return;
             }
             throw err;
@@ -481,6 +482,9 @@
         }
         
       } catch (err) {
+        // Restore input state on error
+        input.value = text;
+        setModified(true);
         statusText.textContent = 'Error: ' + err.message;
         console.error(err);
       }
