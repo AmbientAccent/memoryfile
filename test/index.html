@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HTML-SQLite Fusion - Test Runner</title>
+  <meta name="robots" content="noindex, nofollow">
+  <title>Test Runner</title>
   <style>
     * {
       margin: 0;
@@ -279,21 +280,21 @@
 <body>
   <div class="container">
     <div class="header">
-      <h1>🧪 HTML-SQLite Fusion Test Suite</h1>
-      <p>Comprehensive testing for self-persistent web applications</p>
+      <h1>Test Suite</h1>
+      <p>Internal testing for self-persistent web applications</p>
     </div>
 
     <div class="browser-info" id="browserInfo">
-      <h3>⚙️ Browser Support</h3>
+      <h3>Browser Support</h3>
       <div id="browserSupportDetails">Loading browser capabilities...</div>
     </div>
 
     <div class="controls">
-      <button id="runAllBtn" class="btn-primary">▶️ Run All Tests</button>
+      <button id="runAllBtn" class="btn-primary">Run All Tests</button>
       <button id="runUnitBtn" class="btn-secondary">Unit Tests</button>
       <button id="runIntegrationBtn" class="btn-secondary">Integration Tests</button>
       <button id="runPerformanceBtn" class="btn-secondary">Performance Tests</button>
-      <button id="clearBtn" class="btn-danger">🗑️ Clear Output</button>
+      <button id="clearBtn" class="btn-danger">Clear Output</button>
       <select id="testFilter">
         <option value="all">All Tests</option>
         <option value="unit">Unit Tests Only</option>
@@ -312,15 +313,15 @@
         <div class="stat-value" id="totalTests">0</div>
       </div>
       <div class="stat-card passed">
-        <div class="stat-label">Passed ✓</div>
+        <div class="stat-label">Passed</div>
         <div class="stat-value" id="passedTests">0</div>
       </div>
       <div class="stat-card failed">
-        <div class="stat-label">Failed ✗</div>
+        <div class="stat-label">Failed</div>
         <div class="stat-value" id="failedTests">0</div>
       </div>
       <div class="stat-card skipped">
-        <div class="stat-label">Skipped ⊘</div>
+        <div class="stat-label">Skipped</div>
         <div class="stat-value" id="skippedTests">0</div>
       </div>
       <div class="stat-card">
@@ -344,23 +345,20 @@
   <!-- Embedded Database Placeholder -->
   <script id="embedded-db" type="application/x-sqlite3"></script>
 
-  <!-- SQLite WASM - Uses standard version (sql-wasm.js) for development
-       This requires running a local HTTP server: python3 -m http.server 3000
-       The standard version loads sql-wasm.wasm separately (~50KB overhead)
-       For no-server usage, use sql-wasm-inline.js instead (~850KB overhead) -->
-  <script src="lib/sql-wasm.js"></script>
+  <!-- SQLite WASM -->
+  <script src="../lib/sql-wasm.js"></script>
 
   <!-- Core Library -->
-  <script src="lib/html-sqlite-core.js"></script>
+  <script src="../lib/html-sqlite-core.js"></script>
 
   <!-- Test Framework -->
-  <script src="lib/test-utils.js"></script>
+  <script src="../lib/test-utils.js"></script>
 
   <!-- Test Suites -->
-  <script src="lib/unit-tests.js"></script>
-  <script src="lib/integration-tests.js"></script>
-  <script src="lib/performance-tests.js"></script>
-  <script src="lib/commit-cycle-tests.js"></script>
+  <script src="../lib/unit-tests.js"></script>
+  <script src="../lib/integration-tests.js"></script>
+  <script src="../lib/performance-tests.js"></script>
+  <script src="../lib/commit-cycle-tests.js"></script>
 
   <!-- Main Test Runner -->
   <script>
@@ -388,7 +386,7 @@
       // Setup button handlers
       setupEventHandlers();
 
-      console.log('✅ Test runner initialized. Ready to run tests.');
+      console.log('Test runner initialized. Ready to run tests.');
     });
 
     async function checkBrowserSupport() {
@@ -397,43 +395,43 @@
       
       browserInfo.innerHTML = `
         <div>
-          <strong>WebAssembly:</strong> ${support.webAssembly ? '✅' : '❌'}
-          <strong>File System Access API:</strong> ${support.fileSystemAccess ? '✅' : '❌'}
-          <strong>OPFS:</strong> ${support.opfs ? '✅' : '❌'}
-          <strong>IndexedDB:</strong> ${support.indexedDB ? '✅' : '❌'}
+          <strong>WebAssembly:</strong> ${support.webAssembly ? 'Yes' : 'No'}
+          <strong>File System Access API:</strong> ${support.fileSystemAccess ? 'Yes' : 'No'}
+          <strong>OPFS:</strong> ${support.opfs ? 'Yes' : 'No'}
+          <strong>IndexedDB:</strong> ${support.indexedDB ? 'Yes' : 'No'}
         </div>
-        ${!support.fileSystemAccess ? '<div style="margin-top: 0.5rem; font-size: 0.875rem;">⚠️ File System Access API not supported. Save will use download fallback.</div>' : ''}
+        ${!support.fileSystemAccess ? '<div style="margin-top: 0.5rem; font-size: 0.875rem;">File System Access API not supported. Save will use download fallback.</div>' : ''}
       `;
     }
 
     async function registerAllTests() {
-      console.log('📝 Registering test suites...');
+      console.log('Registering test suites...');
       
       // Register unit tests
       if (typeof registerUnitTests === 'function') {
         await registerUnitTests(testRunner);
-        console.log('✅ Unit tests registered');
+        console.log('Unit tests registered');
       }
 
       // Register integration tests
       if (typeof registerIntegrationTests === 'function') {
         await registerIntegrationTests(testRunner);
-        console.log('✅ Integration tests registered');
+        console.log('Integration tests registered');
       }
 
       // Register performance tests
       if (typeof registerPerformanceTests === 'function') {
         await registerPerformanceTests(testRunner);
-        console.log('✅ Performance tests registered');
+        console.log('Performance tests registered');
       }
 
       // Register commit cycle tests
       if (typeof registerCommitCycleTests === 'function') {
         await registerCommitCycleTests(testRunner);
-        console.log('✅ Commit cycle tests registered');
+        console.log('Commit cycle tests registered');
       }
 
-      console.log(`📊 Total tests registered: ${testRunner.tests.length}`);
+      console.log(`Total tests registered: ${testRunner.tests.length}`);
     }
 
     function setupEventHandlers() {
