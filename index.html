@@ -226,9 +226,7 @@
   
   <div class="container">
     <h1>MemoryFile</h1>
-    <p class="subtitle">
-      This HTML file has an embedded database. Type something, save with Ctrl+S, and it persists.
-    </p>
+    <p class="subtitle" id="subtitle">Loading...</p>
     
     <!--
       Try it: Type in the box, press Ctrl+S or the button below.
@@ -251,6 +249,7 @@
       <a href="https://github.com/AmbientAccent/memoryfile">GitHub</a> ·
       <a href="examples/">Examples</a> ·
       <a href="https://github.com/AmbientAccent/memoryfile/tree/main/docs">Docs</a> ·
+      <span id="clear-link" style="display: none;"><a href="#" id="clear-btn">Clear Data</a> ·</span>
       MIT License
     </footer>
   </div>
@@ -284,6 +283,9 @@
     const statusBar = document.getElementById('status-bar');
     const statusText = document.getElementById('status-text');
     const statusSize = document.getElementById('status-size');
+    const subtitle = document.getElementById('subtitle');
+    const clearLink = document.getElementById('clear-link');
+    const clearBtn = document.getElementById('clear-btn');
     
     // Helpers
     function b64ToBytes(b64) {
@@ -384,6 +386,31 @@
       return result.length > 0 && result[0].values[0][0] <= 1;
     }
     
+    // Update UI based on first-run status
+    function updateFuxState() {
+      if (isFirstRun()) {
+        subtitle.textContent = 'Welcome! Type something below and press Ctrl+S to save. Your data persists in this HTML file.';
+        clearLink.style.display = 'none';
+      } else {
+        const entryCount = db.exec('SELECT COUNT(*) FROM entries');
+        const count = entryCount[0]?.values[0]?.[0] || 0;
+        subtitle.textContent = `Welcome back. You have ${count} saved ${count === 1 ? 'entry' : 'entries'}.`;
+        clearLink.style.display = 'inline';
+      }
+    }
+    
+    // Clear all user data (reset to initial state)
+    function clearData() {
+      if (!confirm('Clear all entries and history? This cannot be undone until you save.')) return;
+      db.run('DELETE FROM entries');
+      db.run('DELETE FROM commits WHERE parent_hash IS NOT NULL');
+      render();
+      renderCommits();
+      updateSize();
+      updateFuxState();
+      setModified(true);
+    }
+    
     // Render
     function render() {
       const result = db.exec('SELECT text, created_at FROM entries ORDER BY id DESC');
@@ -465,6 +492,7 @@
         render();
         renderCommits();
         updateSize();
+        updateFuxState();
 
         // Build HTML (now captures correct state)
         const dbBase64 = bytesToB64(db.export());
@@ -543,6 +571,9 @@
         // Generate real initial commit on first open
         await ensureInitialCommit();
         
+        // Update UI based on first-run status
+        updateFuxState();
+        
         render();
         renderCommits();
         updateSize();
@@ -565,6 +596,7 @@
     });
     
     btnSave.addEventListener('click', save);
+    clearBtn.addEventListener('click', e => { e.preventDefault(); clearData(); });
     
     document.addEventListener('keydown', e => {
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
