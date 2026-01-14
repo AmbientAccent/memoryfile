@@ -258,10 +258,10 @@
   <!-- Commit metadata (updated on each save) -->
   <script id="commit-metadata" type="application/json">
 {
-  "commitHash": "00000000",
+  "commitHash": null,
   "parentHash": null,
-  "commitMessage": "Initial commit",
-  "commitDate": "2026-01-13T00:00:00Z"
+  "commitMessage": null,
+  "commitDate": null
 }
   </script>
   
@@ -348,10 +348,40 @@
           created_at TEXT NOT NULL
         )
       `);
+    }
+    
+    // Generate initial commit on first open (marks "user has seen this file")
+    async function ensureInitialCommit() {
+      if (metadata.commitHash !== null) {
+        // Already has a real initial commit - not first time
+        return;
+      }
+      
+      const now = new Date().toISOString();
+      const commitData = {
+        timestamp: Date.now(),
+        message: 'Initial commit',
+        firstOpen: true
+      };
+      const commitHash = await hash(commitData);
+      
+      metadata = {
+        commitHash: commitHash,
+        parentHash: null,
+        commitMessage: 'Initial commit',
+        commitDate: now
+      };
+      
       db.run(
         'INSERT OR IGNORE INTO commits (hash, parent_hash, message, created_at) VALUES (?, ?, ?, ?)',
         [metadata.commitHash, null, metadata.commitMessage, metadata.commitDate]
       );
+    }
+    
+    // Check if this is a first-time user (only initial commit exists)
+    function isFirstRun() {
+      const result = db.exec('SELECT COUNT(*) FROM commits');
+      return result.length > 0 && result[0].values[0][0] <= 1;
     }
     
     // Render
@@ -510,10 +540,16 @@
           createSchema();
         }
         
+        // Generate real initial commit on first open
+        await ensureInitialCommit();
+        
         render();
         renderCommits();
         updateSize();
         input.focus();
+        
+        // Expose isFirstRun for application developers
+        window.memoryFile = { isFirstRun };
         
       } catch (err) {
         statusText.textContent = 'Error: ' + err.message;
