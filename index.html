@@ -242,7 +242,7 @@
       .noscript-warning { background: #111; color: #666; border-bottom-color: #222; }
     }
   </style>
-  <script src="lib/sql-wasm.js"></script>
+  <script src="lib/sql-wasm-inline.js"></script>
   <script src="lib/html-sqlite-core.js"></script>
 </head>
 <body>
@@ -283,6 +283,7 @@
     </div>
     
     <footer>
+      <a href="/about/">About</a> ·
       <a href="https://github.com/AmbientAccent/memoryfile">GitHub</a> ·
       <a href="/examples/">Examples</a> ·
       <a href="https://github.com/AmbientAccent/memoryfile/tree/main/docs">Docs</a> ·
@@ -497,18 +498,22 @@
       btnSave.disabled = true;
       
       const previousMetadata = metadata;
-      let transactionOpen = false;
+      let savepointOpen = false;
+      let lastEntryId = null;
+      let newHash = null;
       
       try {
-        // Stage changes in a transaction so cancel can roll back.
-        db.run('BEGIN');
-        transactionOpen = true;
+        // Stage changes in a savepoint so cancel can roll back.
+        db.run('SAVEPOINT mf_save');
+        savepointOpen = true;
         
         // Add entry
         db.run(
           'INSERT INTO entries (text, created_at) VALUES (?, ?)',
           [text, new Date().toISOString()]
         );
+        const entryResult = db.exec('SELECT last_insert_rowid()');
+        lastEntryId = entryResult?.[0]?.values?.[0]?.[0] ?? null;
         
         // Generate commit
         const commitData = {
@@ -517,7 +522,7 @@
           text: text.slice(0, 50),
           parent: metadata.commitHash
         };
-        const newHash = await hash(commitData);
+        newHash = await hash(commitData);
         const now = new Date().toISOString();
         
         // Add commit
@@ -569,8 +574,15 @@
         const saveResult = await MemoryFile.saveHtmlFile(html, filename);
         if (saveResult && saveResult.cancelled) {
           // Roll back staged changes on cancel.
-          if (transactionOpen) db.run('ROLLBACK');
-          transactionOpen = false;
+          if (savepointOpen) {
+            try { db.run('ROLLBACK TO mf_save'); } catch {}
+            try { db.run('RELEASE mf_save'); } catch {}
+            savepointOpen = false;
+          }
+          if (newHash) db.run('DELETE FROM commits WHERE hash = ?', [newHash]);
+          if (lastEntryId !== null) {
+            db.run('DELETE FROM entries WHERE id = ?', [lastEntryId]);
+          }
           metadata = previousMetadata;
           input.value = text;
           setModified(true);
@@ -586,8 +598,10 @@
         }
         
         // Commit staged changes and update UI state.
-        if (transactionOpen) db.run('COMMIT');
-        transactionOpen = false;
+        if (savepointOpen) {
+          db.run('RELEASE mf_save');
+          savepointOpen = false;
+        }
         
         metadata = newMetadata;
         input.value = '';
@@ -599,8 +613,13 @@
         
       } catch (err) {
         // Restore input state on error
-        if (transactionOpen) {
-          try { db.run('ROLLBACK'); } catch {}
+        if (savepointOpen) {
+          try { db.run('ROLLBACK TO mf_save'); } catch {}
+          try { db.run('RELEASE mf_save'); } catch {}
+        }
+        if (newHash) db.run('DELETE FROM commits WHERE hash = ?', [newHash]);
+        if (lastEntryId !== null) {
+          db.run('DELETE FROM entries WHERE id = ?', [lastEntryId]);
         }
         metadata = previousMetadata;
         input.value = text;
@@ -617,7 +636,7 @@
     // Init
     async function init() {
       try {
-        sqlModule = await initSqlJs({ locateFile: f => `lib/${f}` });
+        sqlModule = await initSqlJs();
         metadata = JSON.parse(document.getElementById('commit-metadata').textContent);
         
         const dbBase64 = document.getElementById('embedded-db').textContent.trim();
