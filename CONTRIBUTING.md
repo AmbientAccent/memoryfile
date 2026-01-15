@@ -25,9 +25,9 @@ cd memoryfile
 python3 -m http.server 3000
 open http://localhost:3000/test-runner.html
 
-# Quick test of inline examples - these work without a server because they
+# Quick test of examples - these work without a server because they
 # embed WASM as base64 data URI in sql-wasm-inline.js
-open examples/01-basic-demo-inline.html
+open examples/01-basic-demo.html
 ```
 
 ## Building Inline WASM
@@ -39,7 +39,7 @@ The project supports two WASM approaches:
 - Requires HTTP server for development
 - Smaller file size (~50KB overhead)
 
-### Inline WASM (Production/Distribution)
+### Embedded WASM (Examples and Distribution)
 - Uses `lib/sql-wasm-inline.js` with embedded WASM
 - Works with `file://` protocol
 - Larger file size (+800KB overhead)
@@ -50,27 +50,17 @@ The project supports two WASM approaches:
 When `sql-wasm.wasm` is updated, rebuild the inline version:
 
 ```bash
-node build-inline-wasm.js
+node tools/build-inline-wasm.js
 ```
 
 This creates `lib/sql-wasm-inline.js` with WASM embedded as base64 data URI.
 
-### Creating Inline Examples
+### Creating Bundled Examples
 
-To create an inline version of an example:
+To create a single-file bundled version of an example:
 
 ```bash
-cp examples/my-demo.html examples/my-demo-inline.html
-sed -i '' 's|../lib/sql-wasm.js|../lib/sql-wasm-inline.js|' examples/my-demo-inline.html
-```
-
-Or manually change:
-```html
-<!-- From: -->
-<script src="../lib/sql-wasm.js"></script>
-
-<!-- To: -->
-<script src="../lib/sql-wasm-inline.js"></script>
+node tools/bundle-inline.js examples/my-demo.html
 ```
 
 See [INLINE_WASM.md](INLINE_WASM.md) for details.
@@ -187,9 +177,9 @@ We welcome feature requests! Please:
 
 You need a server ONLY for files that use `sql-wasm.js` (the standard version). This includes:
 - test-runner.html
-- Most examples (01-basic-demo.html, 02-commit-demo.html, etc.)
+- test pages that explicitly load `sql-wasm.js` (for example `test-runner.html`)
 
-Files with `-inline.html` suffix work directly via `open` command or double-click. No server needed.
+Examples that load `sql-wasm-inline.js` work directly via `open` command or double-click. No server needed.
 
 Browsers block loading `.wasm` files via `file://` protocol due to CORS policy. The standard version tries to fetch `sql-wasm.wasm` separately, which fails without a server.
 
@@ -214,7 +204,7 @@ Almost never. Only rebuild `sql-wasm-inline.js` if:
 - The `sql-wasm.wasm` binary itself is updated (rare, maintainer task)
 - The `sql-wasm.js` wrapper changes (rare)
 
-Regular contributors working on application code (html-sqlite-core.js, trust-manager.js, tests) never need to run `node build-inline-wasm.js`.
+Regular contributors working on application code (html-sqlite-core.js, trust-manager.js, tests) never need to run `node tools/build-inline-wasm.js`.
 
 ### Which tests should I run before submitting a PR?
 

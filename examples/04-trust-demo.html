@@ -24,7 +24,7 @@
       pre { background: #0f172a; color: #e2e8f0; }
     }
   </style>
-  <script src="../lib/sql-wasm.js"></script>
+  <script src="../lib/sql-wasm-inline.js"></script>
   <script src="../lib/trust-manager.js"></script>
 </head>
 <body>
@@ -91,7 +91,7 @@ U1FMaXRlIGZvcm1hdCAzABAAAQEMQCAgAAAAAgAAAAIAAAAAAAAAAAAAAAEAAAAEAAAAAAAAAAAAAAAB
           }
         });
 
-        sqlModule = await initSqlJs({ locateFile: file => `../lib/${file}` });
+        sqlModule = await initSqlJs();
 
         const dbDataBase64 = document.getElementById('embedded-db').textContent.trim();
         

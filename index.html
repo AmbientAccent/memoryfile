@@ -13,8 +13,8 @@
     - Commit history tracked with SHA-256 hashes
 
   Note:
-    - This source file still loads JS from lib/ at runtime
-    - The saved HTML is rewritten to inline the WASM loader
+    - This source file loads JS from lib/ at runtime
+    - Saved HTML is rewritten to inline sql-wasm-inline.js when available
   
   API:
     const mf = new MemoryFile({ embedId: 'embedded-db' });
@@ -563,7 +563,7 @@
 
         if (wasmInlineJs) {
           html = html.replace(
-            /<script\s+src="lib\/sql-wasm\.js"><\/script>/,
+            /<script\s+src="lib\/sql-wasm-inline\.js"><\/script>/,
             `<script>\n${wasmInlineJs}\n<\/script>`
           );
         }

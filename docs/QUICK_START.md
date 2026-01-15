@@ -4,12 +4,12 @@ Get started in 30 seconds.
 
 ## Try It Now
 
-Double-click any inline example - they work immediately, no setup required:
+Double-click any example - they work immediately, no setup required:
 
 ```bash
-open examples/01-basic-demo-inline.html
-open examples/04-trust-demo-inline.html
-open examples/05-encryption-demo-inline.html
+open examples/01-basic-demo.html
+open examples/04-trust-demo.html
+open examples/05-encryption-demo.html
 ```
 
 Try adding data, saving (Ctrl+S), and reopening the file. Your data persists.
@@ -22,11 +22,11 @@ No server. No backend. No cloud. Just a file.
 
 ## Explore More Examples
 
-- `01-basic-demo-inline.html` - Simple notes app
+- `01-basic-demo.html` - Simple notes app
 - `02-commit-demo.html` - Git-like version control  
 - `03-notes-as-commits.html` - Notes with history
-- `04-trust-demo-inline.html` - Integrity verification (notice the VERIFIED badge)
-- `05-encryption-demo-inline.html` - Password-protected data
+- `04-trust-demo.html` - Integrity verification (notice the VERIFIED badge)
+- `05-encryption-demo.html` - Password-protected data
 
 ## Build Your Own
 

@@ -5,7 +5,7 @@
  * Creates truly self-contained HTML files that work without any external dependencies.
  * Everything (SQL.js with embedded WASM) is bundled into a single HTML file.
  * 
- * Usage: node tools/bundle-inline.js examples/01-basic-demo-inline.html
+ * Usage: node tools/bundle-inline.js examples/01-basic-demo.html
  * Output: examples/01-basic-demo-bundled.html
  */
 

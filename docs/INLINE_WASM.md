@@ -31,7 +31,7 @@ Standard version (requires server):
 <script src="lib/sql-wasm.js"></script>
 ```
 
-Inline version (works with file://):
+Embedded version (works with file://):
 ```html
 <script src="lib/sql-wasm-inline.js"></script>
 ```
@@ -102,7 +102,7 @@ Output: `lib/sql-wasm-inline.js` (850KB)
 The inline version still requires keeping the `lib/` folder alongside your HTML files. For TRUE single-file distribution where you share just ONE .html file:
 
 ```bash
-node tools/bundle-inline.js examples/01-basic-demo-inline.html
+node tools/bundle-inline.js examples/01-basic-demo.html
 ```
 
 This creates a `-bundled.html` file with ALL JavaScript embedded directly in the HTML. The bundled file:
@@ -115,5 +115,5 @@ This creates a `-bundled.html` file with ALL JavaScript embedded directly in the
 
 The inline approach resolves the file:// protocol limitation by embedding WASM directly as base64. This increases file size by 800KB but enables true portability without HTTP server dependencies.
 
-For development with the folder structure maintained, use the `-inline.html` versions.
+For development with the folder structure maintained, use the examples that load `sql-wasm-inline.js`.
 For single-file distribution, use the `-bundled.html` versions created by `bundle-inline.js`.

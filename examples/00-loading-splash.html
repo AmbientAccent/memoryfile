@@ -30,7 +30,7 @@
       #loading-splash { background: #000; }
     }
   </style>
-  <script src="../lib/sql-wasm.js"></script>
+  <script src="../lib/sql-wasm-inline.js"></script>
   <script src="../lib/html-sqlite-core.js"></script>
 </head>
 <body>
@@ -55,7 +55,7 @@
     async function init() {
       try {
         const mf = new MemoryFile();
-        await mf.initSQL({ locateFile: file => `../lib/${file}` });
+        await mf.initSQL();
         await mf.createDatabase();
         statusEl.textContent = 'Ready';
       } catch (err) {

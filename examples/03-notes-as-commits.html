@@ -20,7 +20,7 @@
       pre { background: #0f172a; color: #e2e8f0; }
     }
   </style>
-  <script src="../lib/sql-wasm.js"></script>
+  <script src="../lib/sql-wasm-inline.js"></script>
 </head>
 <body>
   <h1>Notes as Commits</h1>
@@ -86,7 +86,7 @@ U1FMaXRlIGZvcm1hdCAzABAAAQEMQCAgAAAAAgAAAAIAAAAAAAAAAAAAAAEAAAAEAAAAAAAAAAAAAAAB
     async function init() {
       try {
         log('Loading SQLite...');
-        sqlModule = await initSqlJs({ locateFile: file => `../lib/${file}` });
+        sqlModule = await initSqlJs();
 
         currentMetadata = JSON.parse(document.getElementById('commit-metadata').textContent);
         displayCommitInfo();

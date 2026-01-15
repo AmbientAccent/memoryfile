@@ -8,9 +8,9 @@ Single HTML files with embedded SQLite databases that save themselves. No server
 
 ```bash
 # Open any of these locally - they work offline
-open examples/01-basic-demo-inline.html
-open examples/04-trust-demo-inline.html
-open examples/05-encryption-demo-inline.html
+open examples/01-basic-demo.html
+open examples/04-trust-demo.html
+open examples/05-encryption-demo.html
 ```
 
 Each file contains a full SQLite database. Make changes, press Ctrl+S, and the file updates itself with your data.
@@ -81,7 +81,7 @@ Run `tests/limits-runner.html` to discover your system's limits.
 
 ## Testing
 
-Run any `-inline.html` example to verify functionality works. For contributors running the full test suite, see [CONTRIBUTING.md](CONTRIBUTING.md).
+Run any example to verify functionality works. For contributors running the full test suite, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
