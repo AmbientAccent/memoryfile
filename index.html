@@ -65,6 +65,50 @@
       letter-spacing: -0.5px;
       margin-bottom: 8px;
     }
+
+    .header-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .trust-mini-badge {
+      font-size: 12px;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid #ddd;
+      background: #f7f7f7;
+      color: #555;
+      line-height: 1;
+    }
+
+    .trust-mini-badge[data-status="verified"] {
+      border-color: #10b981;
+      background: #ecfdf5;
+      color: #065f46;
+    }
+
+    .trust-mini-badge[data-status="unverified"] {
+      border-color: #f59e0b;
+      background: #fff7ed;
+      color: #92400e;
+    }
+
+    .trust-mini-badge[data-status="tampered"] {
+      border-color: #ef4444;
+      background: #fef2f2;
+      color: #991b1b;
+    }
+
+    .trust-mini-badge[data-status="unknown"],
+    .trust-mini-badge[data-status="checking"] {
+      border-color: #9ca3af;
+      background: #f3f4f6;
+      color: #6b7280;
+    }
     
     .subtitle {
       color: #666;
@@ -242,10 +286,17 @@
       footer { border-top-color: #222; }
       footer a:hover { color: #fff; }
       .noscript-warning { background: #111; color: #666; border-bottom-color: #222; }
+      .trust-mini-badge { border-color: #333; background: #111; color: #888; }
+      .trust-mini-badge[data-status="verified"] { background: #052e1a; color: #6ee7b7; }
+      .trust-mini-badge[data-status="unverified"] { background: #2b1a00; color: #fcd34d; }
+      .trust-mini-badge[data-status="tampered"] { background: #2b0a0a; color: #fca5a5; }
+      .trust-mini-badge[data-status="unknown"],
+      .trust-mini-badge[data-status="checking"] { background: #0f172a; color: #94a3b8; }
     }
   </style>
   <script src="lib/sql-wasm-inline.js"></script>
   <script src="lib/html-sqlite-core.js"></script>
+  <script src="lib/trust-manager.js"></script>
 <script id="html-sqlite-core-source" type="text/plain">
 /**
  * MemoryFile Core Library
@@ -1687,7 +1738,12 @@ else if (typeof exports === 'object'){
   </div>
   
   <div class="container">
-    <h1>MemoryFile</h1>
+    <div class="header-row">
+      <h1>MemoryFile</h1>
+      <span class="trust-mini-badge" id="trust-mini-badge" data-status="checking" aria-live="polite">
+        Integrity: checking
+      </span>
+    </div>
     <p class="subtitle" id="subtitle">Loading...</p>
     
     <!--
@@ -1735,6 +1791,7 @@ else if (typeof exports === 'object'){
     // State
     let db, sqlModule, metadata;
     let modified = false;
+    let trustManager = null;
     
     // Elements
     const input = document.getElementById('input');
@@ -1750,6 +1807,7 @@ else if (typeof exports === 'object'){
     const clearLink = document.getElementById('clear-link');
     const clearBtn = document.getElementById('clear-btn');
     const loadingSplash = document.getElementById('loading-splash');
+    const trustBadge = document.getElementById('trust-mini-badge');
     
     // Helpers
     function b64ToBytes(b64) {
@@ -1779,6 +1837,71 @@ else if (typeof exports === 'object'){
     
     function fmt(iso) {
       return new Date(iso).toLocaleString();
+    }
+
+    function setTrustBadge(status, text, title) {
+      if (!trustBadge) return;
+      trustBadge.dataset.status = status;
+      trustBadge.textContent = text;
+      if (title) {
+        trustBadge.title = title;
+      } else {
+        trustBadge.removeAttribute('title');
+      }
+    }
+
+    function updateTrustBadge(result) {
+      if (!result) {
+        setTrustBadge('unknown', 'Integrity: unavailable');
+        return;
+      }
+      const status = String(result.status || 'UNVERIFIED').toLowerCase();
+      if (status === 'verified') {
+        setTrustBadge('verified', 'Integrity: verified', 'File hash matches filename');
+        return;
+      }
+      if (status === 'tampered') {
+        setTrustBadge('tampered', 'Integrity: tampered', 'File content does not match filename hash');
+        return;
+      }
+      if (status === 'unverified') {
+        const reason = result.reason ? `Unverified: ${result.reason}` : 'Unverified';
+        setTrustBadge('unverified', 'Integrity: unverified', reason);
+        return;
+      }
+      setTrustBadge('unknown', 'Integrity: unavailable');
+    }
+
+    function initTrustBadge() {
+      if (!trustBadge) return;
+      if (typeof TrustManager === 'undefined') {
+        setTrustBadge('unknown', 'Integrity: unavailable', 'Trust manager not loaded');
+        return;
+      }
+      trustManager = new TrustManager({
+        autoVerify: false,
+        showBadge: false,
+        educationMode: false,
+        excludeSelectors: [
+          '#trust-mini-badge',
+          '#subtitle',
+          '#entries',
+          '#commits',
+          '#entries-section',
+          '#commits-section',
+          '#clear-link'
+        ]
+      });
+      refreshTrustBadge();
+    }
+
+    function refreshTrustBadge() {
+      if (!trustManager) return;
+      trustManager.verify()
+        .then(updateTrustBadge)
+        .catch((err) => {
+          setTrustBadge('unknown', 'Integrity: unavailable', err?.message || 'Verification failed');
+        });
     }
     
     // Mark as modified
@@ -1986,13 +2109,18 @@ else if (typeof exports === 'object'){
         // Inline runtime dependencies for portability when available.
         let wasmInlineJs = null;
         let coreInlineJs = null;
+        let trustInlineJs = null;
         const wasmSourceEl = document.getElementById('sql-wasm-inline-source');
         const coreSourceEl = document.getElementById('html-sqlite-core-source');
+        const trustSourceEl = document.getElementById('trust-manager-source');
         if (wasmSourceEl && wasmSourceEl.textContent.trim()) {
           wasmInlineJs = wasmSourceEl.textContent.trim();
         }
         if (coreSourceEl && coreSourceEl.textContent.trim()) {
           coreInlineJs = coreSourceEl.textContent.trim();
+        }
+        if (trustSourceEl && trustSourceEl.textContent.trim()) {
+          trustInlineJs = trustSourceEl.textContent.trim();
         }
         if (!wasmInlineJs) {
           try {
@@ -2006,6 +2134,14 @@ else if (typeof exports === 'object'){
           try {
             const res = await fetch('lib/html-sqlite-core.js');
             if (res.ok) coreInlineJs = await res.text();
+          } catch (err) {
+            // Best-effort; leave external script reference if fetch fails.
+          }
+        }
+        if (!trustInlineJs) {
+          try {
+            const res = await fetch('lib/trust-manager.js');
+            if (res.ok) trustInlineJs = await res.text();
           } catch (err) {
             // Best-effort; leave external script reference if fetch fails.
           }
@@ -2033,9 +2169,27 @@ else if (typeof exports === 'object'){
             `<script>\n${coreInlineJs}\n<\/script>`
           );
         }
+        if (trustInlineJs) {
+          html = html.replace(
+            /<script\s+src="lib\/trust-manager\.js"><\/script>/,
+            `<script>\n${trustInlineJs}\n<\/script>`
+          );
+        }
 
         // Save file
-        const filename = `memoryfile.${newHash}.html`;
+        let filename = `memoryfile.${newHash}.html`;
+        if (trustManager && typeof trustManager.generateCommitFilename === 'function') {
+          try {
+            let htmlForTrust = html.replace(/^<!doctype html>\s*/i, '');
+            try {
+              const parsed = new DOMParser().parseFromString(html, 'text/html');
+              if (parsed && parsed.documentElement) {
+                htmlForTrust = parsed.documentElement.outerHTML;
+              }
+            } catch {}
+            filename = await trustManager.generateCommitFilename('memoryfile', htmlForTrust);
+          } catch {}
+        }
 
         const saveResult = await MemoryFile.saveHtmlFile(html, filename);
         if (saveResult && saveResult.cancelled) {
@@ -2129,6 +2283,7 @@ else if (typeof exports === 'object'){
         render();
         renderCommits();
         updateSize();
+        refreshTrustBadge();
         input.focus();
         
         // Expose isFirstRun for application developers
@@ -2166,6 +2321,7 @@ else if (typeof exports === 'object'){
       }
     });
     
+    initTrustBadge();
     init();
   </script>
 </body>
