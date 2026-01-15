@@ -468,7 +468,14 @@
       statusText.textContent = 'Saving...';
       btnSave.disabled = true;
       
+      const previousMetadata = metadata;
+      let transactionOpen = false;
+      
       try {
+        // Stage changes in a transaction so cancel can roll back.
+        db.run('BEGIN');
+        transactionOpen = true;
+        
         // Add entry
         db.run(
           'INSERT INTO entries (text, created_at) VALUES (?, ?)',
@@ -491,7 +498,6 @@
           [newHash, metadata.commitHash, text.slice(0, 50), now]
         );
         
-        // Update metadata
         const newMetadata = {
           commitHash: newHash,
           parentHash: metadata.commitHash,
@@ -499,18 +505,18 @@
           commitDate: now
         };
 
-        // Update DOM state BEFORE capturing HTML (so saved file opens clean)
-        metadata = newMetadata;
-        input.value = '';
-        setModified(false);
-        render();
-        renderCommits();
-        updateSize();
-        updateFuxState();
-
-        // Build HTML (now captures correct state)
+        // Build HTML from the staged DB and metadata.
         const dbBase64 = bytesToB64(db.export());
         let html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+
+        // Inline sql-wasm for portability when available.
+        let wasmInlineJs = null;
+        try {
+          const res = await fetch('lib/sql-wasm-inline.js');
+          if (res.ok) wasmInlineJs = await res.text();
+        } catch (err) {
+          // Best-effort; leave external script reference if fetch fails.
+        }
 
         html = html.replace(
           /(<script id="embedded-db"[^>]*>)([\s\S]*?)(<\/script>)/,
@@ -521,6 +527,13 @@
           /(<script id="commit-metadata"[^>]*>)([\s\S]*?)(<\/script>)/,
           `$1\n${JSON.stringify(newMetadata, null, 2)}\n$3`
         );
+
+        if (wasmInlineJs) {
+          html = html.replace(
+            /<script\s+src="lib\/sql-wasm\.js"><\/script>/,
+            `<script>\n${wasmInlineJs}\n<\/script>`
+          );
+        }
 
         // Save file
         const filename = `memoryfile.${newHash}.html`;
@@ -536,9 +549,16 @@
             await writable.close();
           } catch (err) {
             if (err.name === 'AbortError') {
-              // Restore input state on cancel
+              // Roll back staged changes on cancel.
+              if (transactionOpen) db.run('ROLLBACK');
+              transactionOpen = false;
+              metadata = previousMetadata;
               input.value = text;
               setModified(true);
+              render();
+              renderCommits();
+              updateSize();
+              updateFuxState();
               statusText.textContent = 'Cancelled';
               return;
             }
@@ -553,10 +573,30 @@
           URL.revokeObjectURL(a.href);
         }
         
+        // Commit staged changes and update UI state.
+        if (transactionOpen) db.run('COMMIT');
+        transactionOpen = false;
+        
+        metadata = newMetadata;
+        input.value = '';
+        setModified(false);
+        render();
+        renderCommits();
+        updateSize();
+        updateFuxState();
+        
       } catch (err) {
         // Restore input state on error
+        if (transactionOpen) {
+          try { db.run('ROLLBACK'); } catch {}
+        }
+        metadata = previousMetadata;
         input.value = text;
         setModified(true);
+        render();
+        renderCommits();
+        updateSize();
+        updateFuxState();
         statusText.textContent = 'Error: ' + err.message;
         console.error(err);
       }
