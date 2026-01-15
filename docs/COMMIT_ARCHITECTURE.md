@@ -16,8 +16,8 @@ Each HTML file contains:
 ```html
 <script id="commit-metadata" type="application/json">
 {
-  "commitHash": "a1b2c3d4",
-  "parentHash": "z9y8x7w6",
+  "commitHash": "a1b2c3",
+  "parentHash": "d4e5f6",
   "commitMessage": "Added signature section",
   "commitAuthor": "user@example.com",
   "commitDate": "2026-01-13T05:37:00Z",
@@ -37,7 +37,7 @@ The framework provides flexible naming patterns:
 ```javascript
 // Default pattern
 "{basename}.{commitHash}.html"
-// Example: contract.a1b2c3d4.html
+// Example: contract.a1b2c3.html
 
 // Timestamp pattern
 "{basename}.{timestamp}.html"
@@ -91,7 +91,7 @@ async function generateCommitHash(data) {
   }));
   const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 8);
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 6);
 }
 ```
 
@@ -125,7 +125,7 @@ CREATE TABLE commit_history (
   - Commit message: "Added meeting notes"
   - [Commit and Save]
   
-→ Downloads: notes.a1b2c3d4.html
+→ Downloads: notes.a1b2c3.html
 ```
 
 #### Option 2: Semantic Commit (App-Specific)
@@ -212,7 +212,7 @@ contract.signed-2026-01-13.html      (Fully executed) ← Send this
 ### Notes App
 ```
 notes.html                    (Start)
-notes.a1b2c3d4.html          (Added 5 notes)
+notes.a1b2c3.html          (Added 5 notes)
 notes.f3e8d9c2.html          (Added 10 more notes)
 notes.backup-20260113.html   (Manual backup point)
 ```

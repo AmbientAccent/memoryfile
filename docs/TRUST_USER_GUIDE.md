@@ -66,7 +66,7 @@ What to do:
 Every file has a unique "fingerprint" (called a hash) that's like its DNA:
 
 ```
-contract.a1b2c3d4.html
+contract.a1b2c3.html
          ^^^^^^^^
          This is the fingerprint
 ```
@@ -86,14 +86,14 @@ If anyone changes even one character:
 
 Original file:
 ```
-invoice.a1b2c3d4.html
+invoice.a1b2c3.html
         ^^^^^^^^
         Fingerprint matches content ✓
 ```
 
 If someone edits it:
 ```
-invoice.a1b2c3d4.html (filename unchanged)
+invoice.a1b2c3.html (filename unchanged)
         ^^^^^^^^
         But content changed!
         Fingerprint doesn't match ✗
@@ -189,7 +189,7 @@ Inside the expanded badge, click "Learn about verification →" to see:
 
 ### Scenario 1: Contract from Business Partner
 
-You receive: `contract.a1b2c3d4.html`
+You receive: `contract.a1b2c3.html`
 
 Badge shows: VERIFIED
 
@@ -227,7 +227,7 @@ What to do:
 ### Scenario 4: Multiple Copies Don't Match
 
 You have:
-- Copy from email: `report.a1b2c3d4.html` ✓ VERIFIED
+- Copy from email: `report.a1b2c3.html` ✓ VERIFIED
 - Copy from colleague: `report.f3e2d1c0.html` ✓ VERIFIED
 
 What this means:
@@ -289,7 +289,7 @@ The idea: The filename IS the content fingerprint. Can't fake it without breakin
 │ ✓ VERIFIED                   ✕ │  ← Click to collapse
 ├─────────────────────────────────┤
 │ Status: File integrity confirmed│
-│ Hash: a1b2c3d4 📋              │  ← Click to copy
+│ Hash: a1b2c3 📋              │  ← Click to copy
 │ Method: Content-addressed       │
 │                                 │
 │ [ Learn about verification → ] │

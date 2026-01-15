@@ -29,7 +29,7 @@ async function saveWithVerification() {
   const htmlContent = buildYourHTML();
   const trust = new TrustManager();
   const filename = await trust.generateCommitFilename('myapp', htmlContent);
-  // Result: "myapp.a1b2c3d4.html"
+  // Result: "myapp.a1b2c3.html"
   downloadFile(htmlContent, filename);
 }
 ```
@@ -41,8 +41,8 @@ async function saveWithVerification() {
 The filename contains a SHA-256 hash of the file's content:
 
 ```
-contract.a1b2c3d4.html
-         ^^^^^^^^
+contract.a1b2c3.html
+         ^^^^^^
          Hash of file content
 ```
 
@@ -58,7 +58,7 @@ async function generateContentHash(htmlContent) {
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  return hashHex.slice(0, 8);
+  return hashHex.slice(0, 6);
 }
 ```
 
@@ -111,7 +111,7 @@ async function verifyFileIntegrity() {
     </div>
     <div class="trust-detail-item">
       <strong>SHA-256:</strong>
-      <code class="trust-hash">a1b2c3d4</code>
+      <code class="trust-hash">a1b2c3</code>
     </div>
     <button class="trust-learn-more">Learn about file verification</button>
   </div>
@@ -132,7 +132,7 @@ const trust = new TrustManager(config);
 | `showBadge` | boolean | `true` | Show trust badge |
 | `badgePosition` | string | `'top-right'` | Position: `'top-right'`, `'top-left'`, `'bottom-right'`, `'bottom-left'` |
 | `educationMode` | boolean | `true` | Show "Learn more" button |
-| `hashLength` | number | `8` | Characters from hash in filename |
+| `hashLength` | number | `6` | Characters from hash in filename |
 | `excludeSelectors` | array | `['#trust-badge']` | Elements to exclude from hash |
 | `onVerificationComplete` | function | `null` | Callback when verification completes |
 
@@ -153,7 +153,7 @@ Generate content-addressed filename.
 
 ```javascript
 const filename = await trust.generateCommitFilename('contract', htmlContent);
-// Returns: "contract.a1b2c3d4.html"
+// Returns: "contract.a1b2c3.html"
 ```
 
 #### generateContentHash(htmlContent)
@@ -283,7 +283,7 @@ const trust = new TrustManager({
 
 ```html
 <head>
-  <meta name="filename" content="contract.a1b2c3d4.html">
+  <meta name="filename" content="contract.a1b2c3.html">
 </head>
 ```
 
@@ -331,7 +331,7 @@ const trust = new TrustManager({
 Add meta tag:
 
 ```html
-<meta name="filename" content="yourfile.a1b2c3d4.html">
+<meta name="filename" content="yourfile.a1b2c3.html">
 ```
 
 ## Advanced Features
@@ -373,7 +373,7 @@ if (userWantsVerification) {
 
 ```bash
 # Generate hash
-sha256sum myfile.a1b2c3d4.html
+sha256sum myfile.a1b2c3.html
 
 # First 8 characters should match filename
 

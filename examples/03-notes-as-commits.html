@@ -39,7 +39,7 @@
 
   <script id="commit-metadata" type="application/json">
 {
-  "commitHash": "00000000",
+  "commitHash": "000000",
   "parentHash": null,
   "commitMessage": "Initial commit",
   "commitDate": "2026-01-13T00:00:00Z",
@@ -80,7 +80,7 @@ U1FMaXRlIGZvcm1hdCAzABAAAQEMQCAgAAAAAgAAAAIAAAAAAAAAAAAAAAEAAAAEAAAAAAAAAAAAAAAB
       const dataBuffer = encoder.encode(JSON.stringify(data));
       const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
       const hashArray = Array.from(new Uint8Array(hashBuffer));
-      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 8);
+      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 6);
     }
 
     async function init() {

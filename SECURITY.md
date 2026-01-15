@@ -22,7 +22,7 @@ However, it does not provide data at rest encryption by default, protection agai
 
 MemoryFile uses a "trust but verify" model with three mechanisms:
 
-Content-addressed filenames include a hash of the file content in the filename (e.g., `notes.a1b2c3d4.html`). Visual trust badges display verification status prominently. Files check their own integrity on load.
+Content-addressed filenames include a hash of the file content in the filename (e.g., `notes.a1b2c3.html`). Visual trust badges display verification status prominently. Files check their own integrity on load.
 
 Important limitation: Files verify themselves, which means a sophisticated attacker who modifies both the content and verification code could bypass checks. The content-addressed filename makes such tampering obvious to users who check the filename.
 
@@ -220,7 +220,7 @@ Always serve MemoryFile applications over HTTPS in production:
 ### Verify File Integrity
 
 1. Check for the trust badge (green checkmark VERIFIED)
-2. Verify the filename contains a hash (e.g., `notes.a1b2c3d4.html`)
+2. Verify the filename contains a hash (e.g., `notes.a1b2c3.html`)
 3. If the badge shows TAMPERED, do not trust the file
 
 ### Download from Trusted Sources

@@ -383,7 +383,7 @@
       const dataBuffer = encoder.encode(JSON.stringify(data));
       const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
       const hashArray = Array.from(new Uint8Array(hashBuffer));
-      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 8);
+      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 6);
     }
 
     // Auto-run test on load
