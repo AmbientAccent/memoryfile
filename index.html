@@ -1708,11 +1708,11 @@ else if (typeof exports === 'object'){
     </div>
     
     <footer>
-      <a href="/about/">About</a> ·
-      <a href="https://github.com/AmbientAccent/memoryfile">GitHub</a> ·
-      <a href="/01-basic-demo.html">Examples</a> ·
-      <a href="https://github.com/AmbientAccent/memoryfile/tree/main/docs">Docs</a> ·
-      <span id="clear-link" style="display: none;"><a href="#" id="clear-btn">Clear Data</a> ·</span>
+      <a href="/about/">About</a> &middot;
+      <a href="https://github.com/AmbientAccent/memoryfile">GitHub</a> &middot;
+      <a href="/01-basic-demo.html">Examples</a> &middot;
+      <a href="https://github.com/AmbientAccent/memoryfile/tree/main/docs">Docs</a> &middot;
+      <span id="clear-link" style="display: none;"><a href="#" id="clear-btn">Clear Data</a> &middot;</span>
       MIT License
     </footer>
   </div>
@@ -1968,7 +1968,20 @@ else if (typeof exports === 'object'){
 
         // Build HTML from the staged DB and metadata.
         const dbBase64 = bytesToB64(db.export());
-        let html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+        const snapshot = document.documentElement.cloneNode(true);
+        const snapshotInput = snapshot.querySelector('#input');
+        const snapshotSaveBtn = snapshot.querySelector('#btn-save');
+        const snapshotStatus = snapshot.querySelector('#status-text');
+        const snapshotStatusBar = snapshot.querySelector('#status-bar');
+        if (snapshotInput) {
+          snapshotInput.value = '';
+          snapshotInput.textContent = '';
+          snapshotInput.classList.remove('modified');
+        }
+        if (snapshotSaveBtn) snapshotSaveBtn.disabled = true;
+        if (snapshotStatus) snapshotStatus.textContent = 'Ready';
+        if (snapshotStatusBar) snapshotStatusBar.classList.remove('modified');
+        let html = '<!DOCTYPE html>\n' + snapshot.outerHTML;
 
         // Inline runtime dependencies for portability when available.
         let wasmInlineJs = null;
@@ -2111,6 +2124,7 @@ else if (typeof exports === 'object'){
         
         // Update UI based on first-run status
         updateFuxState();
+        setModified(false);
         
         render();
         renderCommits();

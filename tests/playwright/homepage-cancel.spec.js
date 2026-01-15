@@ -40,6 +40,11 @@ async function waitForSaveComplete(page) {
   await expect(page.locator("#input")).toHaveValue("");
 }
 
+async function expectFooterClean(page) {
+  const footerText = await page.locator("footer").innerText();
+  expect(footerText).not.toContain("Â");
+}
+
 function normalizeSavedHtml(html) {
   return html;
 }
@@ -97,6 +102,8 @@ test("save across browsers preserves commit chain", async ({
   await pageB.goto(pathToFileURL(fileA1).href);
   await waitForAppReady(pageB);
   await installSaveCapture(pageB);
+  await expect(pageB.locator("#status-text")).toHaveText("Ready");
+  await expectFooterClean(pageB);
 
   await expect(pageB.locator("#commits .commit")).toHaveCount(2);
   await pageB.fill("#input", "Commit from browser B");
@@ -110,6 +117,8 @@ test("save across browsers preserves commit chain", async ({
   await page.goto(pathToFileURL(fileB1).href);
   await waitForAppReady(page);
   await installSaveCapture(page);
+  await expect(page.locator("#status-text")).toHaveText("Ready");
+  await expectFooterClean(page);
 
   await expect(page.locator("#commits .commit")).toHaveCount(3);
   await page.fill("#input", "Commit from browser A again");
