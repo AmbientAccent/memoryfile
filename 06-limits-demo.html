@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Limits Demo</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; background: #fff; color: #000; }
+    button { background: #667eea; color: white; border: none; padding: 12px 24px; border-radius: 4px; cursor: pointer; margin: 5px; }
+    button:hover { background: #5568d3; }
+    pre { background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 4px; overflow-x: auto; }
+    .info { background: #e3f2fd; border-left: 4px solid #2196f3; padding: 15px; margin: 15px 0; }
+
+    @media (prefers-color-scheme: dark) {
+      body { background: #000; color: #fff; }
+      .info { background: #0f1a2b; border-left-color: #1d4ed8; }
+      pre { background: #0f172a; color: #e2e8f0; }
+      button { background: #5568d3; }
+      button:hover { background: #475cc4; }
+    }
+  </style>
+</head>
+<body>
+  <h1>Limits Demo</h1>
+  <p>Discover system boundaries using binary search.</p>
+
+  <h2>Find Maximum Rows</h2>
+  <button onclick="testMaxRows()">Run Test</button>
+  <div id="maxRowsOutput"></div>
+
+  <h2>Find Maximum Text Size</h2>
+  <button onclick="testMaxTextSize()">Run Test</button>
+  <div id="maxTextOutput"></div>
+
+  <h2>Custom Test</h2>
+  <button onclick="testCustom()">Test Blog Post Limit</button>
+  <div id="customOutput"></div>
+
+  <div class="info">
+    <strong>How it works:</strong>
+    <ol>
+      <li>Start with a guess (e.g., 1,000 rows)</li>
+      <li>Double until failure: 1K → 2K → 4K → 8K → FAIL</li>
+      <li>Binary search between last success and first failure</li>
+      <li>Find exact limit within tolerance</li>
+    </ol>
+  </div>
+
+  <script src="lib/sql-wasm-inline.js"></script>
+  <script src="lib/html-sqlite-core.js"></script>
+  <script src="lib/test-utils.js"></script>
+  <script src="lib/limit-tests.js"></script>
+  
+  <script>
+    function log(message, elementId) {
+      const element = document.getElementById(elementId);
+      if (!element.querySelector('pre')) {
+        element.innerHTML = '<pre></pre>';
+      }
+      element.querySelector('pre').textContent += message + '\n';
+    }
+    
+    async function testMaxRows() {
+      const output = 'maxRowsOutput';
+      document.getElementById(output).innerHTML = '<pre>Finding maximum rows...\n\n</pre>';
+      
+      const testFn = async (rowCount) => {
+        const fusion = new HTMLSQLiteFusion();
+        await fusion.createDatabase();
+        
+        try {
+          fusion.run('CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)');
+          fusion.run('BEGIN TRANSACTION');
+          
+          for (let i = 0; i < rowCount; i++) {
+            fusion.run('INSERT INTO test VALUES (?, ?)', [i, `value${i}`]);
+          }
+          
+          fusion.run('COMMIT');
+          
+          const result = fusion.exec('SELECT COUNT(*) as count FROM test');
+          fusion.close();
+          
+          return result[0].count === rowCount;
+        } catch (error) {
+          fusion.close();
+          return false;
+        }
+      };
+      
+      try {
+        log('Starting binary search...', output);
+        
+        const result = await LimitFinder.findLimit(1000, testFn, { tolerance: 100 });
+        
+        log('\nRESULT:', output);
+        log(`Maximum Rows: ${result.limit.toLocaleString()}`, output);
+        log(`Last Passed: ${result.passed.toLocaleString()}`, output);
+        log(`First Failed: ${result.failed.toLocaleString()}`, output);
+      } catch (error) {
+        log(`\nError: ${error.message}`, output);
+      }
+    }
+    
+    async function testMaxTextSize() {
+      const output = 'maxTextOutput';
+      document.getElementById(output).innerHTML = '<pre>Finding maximum TEXT size...\n\n</pre>';
+      
+      const testFn = async (textSize) => {
+        const fusion = new HTMLSQLiteFusion();
+        await fusion.createDatabase();
+        
+        try {
+          fusion.run('CREATE TABLE test (id INTEGER PRIMARY KEY, data TEXT)');
+          
+          const bigText = 'x'.repeat(textSize);
+          fusion.run('INSERT INTO test VALUES (?, ?)', [1, bigText]);
+          
+          const result = fusion.exec('SELECT length(data) as len FROM test');
+          fusion.close();
+          
+          return result[0].len === textSize;
+        } catch (error) {
+          fusion.close();
+          return false;
+        }
+      };
+      
+      try {
+        log('Starting binary search...', output);
+        log('(This may take 1-2 minutes)\n', output);
+        
+        const result = await LimitFinder.findLimit(10000, testFn, { tolerance: 1000 });
+        
+        const sizeMB = (result.limit / 1024 / 1024).toFixed(2);
+        
+        log('\nRESULT:', output);
+        log(`Maximum TEXT Size: ${result.limit.toLocaleString()} chars`, output);
+        log(`Size in MB: ${sizeMB} MB`, output);
+        log(`Last Passed: ${result.passed.toLocaleString()}`, output);
+        log(`First Failed: ${result.failed.toLocaleString()}`, output);
+      } catch (error) {
+        log(`\nError: ${error.message}`, output);
+      }
+    }
+    
+    async function testCustom() {
+      const output = 'customOutput';
+      document.getElementById(output).innerHTML = '<pre>Testing blog post limits...\n\n</pre>';
+      
+      const testFn = async (postCount) => {
+        const fusion = new HTMLSQLiteFusion();
+        await fusion.createDatabase();
+        
+        try {
+          fusion.run(`
+            CREATE TABLE posts (
+              id INTEGER PRIMARY KEY,
+              title TEXT,
+              content TEXT,
+              tags TEXT,
+              created_at DATETIME
+            )
+          `);
+          
+          fusion.run('CREATE INDEX idx_created ON posts(created_at)');
+          
+          fusion.run('BEGIN TRANSACTION');
+          for (let i = 0; i < postCount; i++) {
+            fusion.run(
+              'INSERT INTO posts VALUES (?, ?, ?, ?, ?)',
+              [i, `Post ${i}`, 'Lorem ipsum...', 'tag1,tag2', new Date().toISOString()]
+            );
+          }
+          fusion.run('COMMIT');
+          
+          const start = performance.now();
+          fusion.exec('SELECT * FROM posts ORDER BY created_at DESC LIMIT 10');
+          const duration = performance.now() - start;
+          
+          fusion.close();
+          
+          return duration < 100;
+        } catch (error) {
+          fusion.close();
+          return false;
+        }
+      };
+      
+      try {
+        log('Finding limit for fast queries (<100ms)...\n', output);
+        
+        const result = await LimitFinder.findLimit(100, testFn, { tolerance: 10 });
+        
+        log('\nRESULT:', output);
+        log(`Can handle ${result.limit.toLocaleString()} blog posts`, output);
+        log(`while maintaining <100ms query times\n`, output);
+        log(`Last Passed: ${result.passed.toLocaleString()}`, output);
+        log(`First Failed: ${result.failed.toLocaleString()}`, output);
+        log('\nUse this to set soft limits in your app', output);
+      } catch (error) {
+        log(`\nError: ${error.message}`, output);
+      }
+    }
+  </script>
+</body>
+</html>

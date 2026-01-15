@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  Minimal loading splash example for MemoryFile.
+  This shows only the startup overlay and hides it after init.
+-->
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Loading Splash</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      font-family: -apple-system, system-ui, sans-serif;
+      background: #fff;
+      color: #000;
+      padding: 40px 24px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    #loading-splash {
+      position: fixed;
+      inset: 0;
+      background: #fff;
+      z-index: 1000;
+    }
+    @media (prefers-color-scheme: dark) {
+      body { background: #000; color: #fff; }
+      #loading-splash { background: #000; }
+    }
+  </style>
+  <script src="lib/sql-wasm-inline.js"></script>
+  <script src="lib/html-sqlite-core.js"></script>
+</head>
+<body>
+  <!--
+    Loading splash to avoid visible UI swaps while sql.js loads.
+    Customize with inline HTML/CSS/SVG or a base64 image as needed.
+  -->
+  <div id="loading-splash" aria-hidden="true"></div>
+
+  <h1>Loading Splash</h1>
+  <p>This page hides all UI until the MemoryFile init completes.</p>
+  <p id="status">Loading…</p>
+
+  <script>
+    const statusEl = document.getElementById('status');
+    const loadingSplash = document.getElementById('loading-splash');
+
+    function hideLoadingSplash() {
+      loadingSplash.style.display = 'none';
+    }
+
+    async function init() {
+      try {
+        const mf = new MemoryFile();
+        await mf.initSQL();
+        await mf.createDatabase();
+        statusEl.textContent = 'Ready';
+      } catch (err) {
+        statusEl.textContent = 'Error: ' + err.message;
+      } finally {
+        hideLoadingSplash();
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
