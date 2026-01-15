@@ -87,7 +87,7 @@ After 1M rows: ~1-2 GB (near practical limit)
 | Firefox | SpiderMonkey | ~536,870,911 chars | MDN |
 | Safari | JavaScriptCore | ~536,870,911 chars | WebKit docs |
 
-**Note**: These are theoretical. Practical limits are lower due to:
+Note: These are theoretical. Practical limits are lower due to:
 - Available heap memory
 - Other allocations
 - Browser overhead
@@ -182,20 +182,20 @@ console.log('Usage:', estimate.usage); // Currently used
 
 ### Why Theoretical Limits Are Higher
 
-1. **Multiple Constraints**: Smallest limit wins
+1. Multiple constraints. Smallest limit wins.
    - SQLite says 1 GB TEXT field
    - But JavaScript string limit is 512 MB
    - And available memory might be 500 MB
-   - **Effective limit: ~400 MB** (with headroom)
+   - Effective limit is around 400 MB with headroom
 
-2. **Memory Overhead**: Operations need extra memory
+2. Memory overhead. Operations need extra memory.
    - Database in memory: 100 MB
    - Export operation: +100 MB copy
    - Base64 encoding: +137 MB
    - HTML reconstruction: +237 MB
    - **Peak memory: ~574 MB**
 
-3. **Performance Degradation**: Before hard limits
+3. Performance degradation. This appears before hard limits.
    - Can technically store 1M rows
    - But queries take 10+ seconds
    - **Practical limit: 100K rows** (for <1s queries)
@@ -221,18 +221,18 @@ Based on typical 2026 hardware (16 GB RAM, modern browser):
 
 ### Why Binary Search?
 
-1. **Efficient**: O(log n) instead of O(n)
+1. Efficient. O(log n) instead of O(n).
    ```
    Linear search: Test 1, 2, 3, 4... → 100 tests for limit 100
    Binary search: Test 50, 25, 37, 31... → 7 tests for limit 100
    ```
 
-2. **Finds Real Limits**: Not guessed
+2. Finds real limits. Not guessed.
    - Don't assume limits based on docs
    - Actually test until failure
    - Verify boundary conditions
 
-3. **Reproducible**: Same process every time
+3. Reproducible. Same process every time.
    - Start with exponential search (2x each step)
    - Switch to binary search when failure found
    - Narrow down to exact value

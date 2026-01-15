@@ -7,7 +7,7 @@ Single HTML files with embedded SQLite databases that save themselves. No server
 ## Try It
 
 ```bash
-# Double-click any of these - they work offline
+# Open any of these locally - they work offline
 open examples/01-basic-demo-inline.html
 open examples/04-trust-demo-inline.html
 open examples/05-encryption-demo-inline.html
@@ -41,22 +41,25 @@ The HTML file contains everything: UI, JavaScript, SQLite WASM library, and your
 
 ```javascript
 const mf = new MemoryFile({ encrypted: true });
-await mf.loadEmbeddedDatabase('password');
+const password = await getPassword(); // implement in your UI
+if (!password) throw new Error('Password required');
+await mf.loadEmbeddedDatabase(password);
 
 mf.run('INSERT INTO tasks (name) VALUES (?)', ['My task']);
 const results = mf.exec('SELECT * FROM tasks');
 
-await mf.saveToFile('myapp.html', 'password');
+await mf.saveToFile('myapp.html', password);
 ```
 
 ## Browser Support
 
-| Feature | Chrome/Edge | Firefox | Safari |
-|---------|-------------|---------|--------|
-| Core functionality | Full | Full | Full |
-| File System Access | Yes | Download fallback | Download fallback |
-
-Chrome or Edge recommended for native file saving.
+| Environment | JS execution | Save in place | Export | Notes |
+|-------------|--------------|---------------|--------|-------|
+| Desktop Chrome/Edge (http/https) | Yes | Yes | Yes | File System Access API |
+| Desktop Firefox/Safari (http/https) | Yes | No | Yes | Downloads a new copy |
+| iOS Safari/Chrome opened from Files/Downloads | No | No | No | Quick Look does not run JS |
+| Android Chrome opened from Downloads | Yes | No | Limited | External files may not load from file:// |
+| Mobile browsers (http/https) | Yes | No | Yes | Use export/share |
 
 ## Limits
 

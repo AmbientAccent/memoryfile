@@ -194,10 +194,10 @@ class HTMLCommitFramework {
 - Con: Might not auto-open in browser
 
 ### Option C: Double Extension `.commit.html`
-- **Pro**: Best of both worlds
-- **Pro**: Windows still recognizes as HTML
-- **Pro**: Name conveys meaning
-- **Recommended for framework**
+- Best of both worlds
+- Windows still recognizes as HTML
+- Name conveys meaning
+- Recommended for framework
 
 ## Real-World Examples
 
@@ -270,11 +270,11 @@ tax-return-2025.filed-01-15.html     (Submitted to IRS)
 
 ## Prior Art
 
-- **Fossil VCS**: Version control built on SQLite (by SQLite's creator)
-- **Git**: Distributed version control (inspired our model)
-- **Conventional Commits**: Structured commit messages (we can adopt)
-- **Timecapsule**: Versioned documents (similar philosophy)
-- **CouchDB**: Document versioning (similar metadata approach)
+- Fossil VCS is version control built on SQLite (by SQLite's creator)
+- Git is distributed version control (inspired our model)
+- Conventional Commits are structured commit messages we can adopt
+- Timecapsule is versioned documents with similar philosophy
+- CouchDB is document versioning with similar metadata approach
 
 ---
 

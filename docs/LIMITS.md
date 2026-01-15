@@ -216,7 +216,7 @@ Hard limits are values the system cannot exceed (e.g., WASM heap size). Soft lim
 
 ## Known Limits
 
-> **Note**: These are example values. Run tests on your system to find actual limits!
+Note: These are example values. Run tests on your system to find actual limits.
 
 ### Typical Chrome/Edge Limits (2026)
 
