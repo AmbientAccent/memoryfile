@@ -70,3 +70,6 @@ coverage/
 *.backup
 *~
 .vercel
+
+# Test artifacts
+test-results/

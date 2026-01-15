@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Basic Demo</title>
   <style>
-    body { font-family: system-ui, sans-serif; margin: 24px; max-width: 800px; }
+    body { font-family: system-ui, sans-serif; margin: 24px; max-width: 800px; background: #fff; color: #000; }
     input, textarea { width: 100%; padding: 8px; margin: 6px 0; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
     button { padding: 8px 16px; margin: 8px 8px 8px 0; border: none; border-radius: 4px; cursor: pointer; }
     .primary { background: #2563eb; color: white; }
@@ -17,6 +17,15 @@
     .status-bar.warning { background: #fef3c7; border-color: #fcd34d; }
     .status-bar .badge { background: #22c55e; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px; }
     .status-bar.warning .badge { background: #f59e0b; }
+
+    @media (prefers-color-scheme: dark) {
+      body { background: #000; color: #fff; }
+      input, textarea { background: #111; color: #fff; border-color: #333; }
+      .note { background: #111; border-color: #222; }
+      .status-bar { background: #111; border-color: #222; color: #666; }
+      .status-bar.warning { background: #2a1f00; border-color: #5a3a00; }
+      pre { background: #0f172a; color: #e2e8f0; }
+    }
   </style>
   <script src="../lib/sql-wasm.js"></script>
   <script src="../lib/html-sqlite-core.js"></script>

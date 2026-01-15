@@ -4,7 +4,7 @@ MemoryFile takes security seriously. This document outlines security considerati
 
 ## Reporting Security Issues
 
-If you discover a security vulnerability, please email **security@memoryfile.org** or open a private security advisory on GitHub. Do not open public issues for security vulnerabilities.
+If you discover a security vulnerability, please email **security@memoryfile.dev** or open a private security advisory on GitHub. Do not open public issues for security vulnerabilities.
 
 We will respond within 48 hours and work with you to understand and address the issue.
 

@@ -7,7 +7,7 @@
   <title>Encryption Demo</title>
   <link rel="stylesheet" href="../lib/trust-badge.css">
   <style>
-    body { font-family: system-ui, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; }
+    body { font-family: system-ui, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; background: #fff; color: #000; }
     input, textarea { width: 100%; padding: 10px; margin: 6px 0; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
     button { padding: 10px 20px; margin: 5px 5px 5px 0; border: none; border-radius: 4px; cursor: pointer; }
     .primary { background: #667eea; color: white; }
@@ -18,6 +18,16 @@
     .status { padding: 15px; border-radius: 4px; margin: 10px 0; font-size: 13px; }
     .status-success { background: #e8f5e9; color: #2e7d32; }
     .status-error { background: #ffebee; color: #c62828; }
+
+    @media (prefers-color-scheme: dark) {
+      body { background: #000; color: #fff; }
+      input, textarea { background: #111; color: #fff; border-color: #333; }
+      .record { background: #111; border-left-color: #667eea; }
+      .info-box { background: #0f2f1c; border-left-color: #4caf50; }
+      .status { background: #111; }
+      .status-success { background: #0f2f1c; color: #9ae6b4; }
+      .status-error { background: #2a0f12; color: #fca5a5; }
+    }
   </style>
 </head>
 <body>
