@@ -79,8 +79,8 @@ function normalizeSavedHtml(html) {
       `<script>\n${coreJs}\n</script>`
     )
     .replace(
-      /<script\s+src="lib\/sql-wasm\.js"><\/script>/,
-      '<script src="/lib/sql-wasm.js"></script>'
+      /<script\s+src="lib\/sql-wasm-inline\.js"><\/script>/,
+      '<script src="/lib/sql-wasm-inline.js"></script>'
     );
 }
 
